@@ -1,0 +1,20 @@
+name: cqdev
+channels:
+  - cadquery
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - pip
+  - cq-editor=master
+  - cadquery
+
+  - pip:
+    - cqgridfinity
+
+    - "python-lsp-server[all]"
+    - pylsp-rope
+    - pylsp-mypy
+    - python-lsp-isort
+    - python-lsp-ruff
