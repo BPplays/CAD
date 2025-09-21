@@ -117,7 +117,7 @@ def make_spacer(spacer):
 def loop_output(out_dir_base):
 
 	for bits in range(1, 4):
-		out_dir = out_dir_base.joinpath(f"{bits} bits")
+		out_dir = out_dir_base.joinpath(f"{bits} bit{'s' if bits > 1 else ''}")
 		out_dir.mkdir(parents=True, exist_ok=True)
 
 		step = Decimal('0.5')
@@ -125,7 +125,7 @@ def loop_output(out_dir_base):
 		while bit_size <= Decimal('10.0'):
 
 			spacer = Spacer(
-				name=f"ltt screwdriver bit spacer for {Decimal('20.0') - bit_size}mm bits",
+				name=f"ltt screwdriver bit spacer for {bits} {Decimal('20.0') - bit_size}mm bit{'s' if bits > 1 else ''}",
 				version=SemVer(1, 0, 0),
 				thickness=float(bit_size),
 				bits=bits
