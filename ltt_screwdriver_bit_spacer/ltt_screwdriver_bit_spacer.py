@@ -1,6 +1,6 @@
 # === variables start ===
 Spacer_thickness = 2.0 # in millimeters
-Bits = 4 # number of bits you want to the spacer to cover (experimental, tested with 3)
+Bits = 3 # number of bits you want to the spacer to cover (experimental, tested with 3)
 
 
 # === variables end ===
@@ -168,7 +168,7 @@ def main():
 		return
 
 	spacer = Spacer(
-		name=f"ltt screwdriver bit spacer for {Decimal(
+		name=f"ltt screwdriver bit spacer for {Bits} {Decimal(
 			'20.0'
 		) - Decimal(
 			str(Spacer_thickness)
