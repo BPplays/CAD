@@ -1,6 +1,6 @@
 # === variables start ===
 Spacer_thickness = 2.0 # in millimeters
-Bits = 3 # number of bits you want to the spacer to cover (experimental, tested with 3)
+Bits = 4 # number of bits you want to the spacer to cover (experimental, tested with 3)
 
 
 # === variables end ===
@@ -83,8 +83,11 @@ def wedge(radius=50.0, angle_tr=0.25, height=10.0, segments=100, center_on_x=Tru
 
 def make_spacer(spacer):
 	if spacer.bits > 3:
-		print("can't have more then 3 bit or it won't fit around the center")
-		exit(1)
+		raise ValueError(
+			"can't have more then 3 bit or it won't fit around the center"
+		)
+		# print("can't have more then 3 bit or it won't fit around the center")
+		# exit(1)
 
 	total_bits_per_side = 6
 
