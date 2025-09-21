@@ -117,8 +117,7 @@ def make_spacer(spacer):
 def loop_output(out_dir_base):
 
 	for bits in range(1, 4):
-
-		out_dir = out_dir_base.joinpath(f"{bits} bit")
+		out_dir = out_dir_base.joinpath(f"{bits} bits")
 		out_dir.mkdir(parents=True, exist_ok=True)
 
 		step = Decimal('0.5')
