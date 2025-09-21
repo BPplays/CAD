@@ -66,7 +66,7 @@ def loop_output(out_dir):
 		spacer = Spacer(
 			name=f"ltt screwdriver bit spacer for {Decimal('20.0') - i}mm bits",
 			version=SemVer(1, 0, 0),
-			thickness=spacer_thickness,
+			thickness=float(i),
 		)
 		print(f"making \"{spacer.name}\"")
 
