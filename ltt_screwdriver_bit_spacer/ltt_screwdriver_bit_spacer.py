@@ -56,7 +56,7 @@ def make_spacer(spacer):
 
 def main():
 	wallet = Spacer(
-		name="ltt screwdriver bit spacer",
+		name="ltt screwdriver bit spacer for 18mm bit",
 		version=SemVer(1, 0, 0),
 		thickness=spacer_thickness,
 	)
