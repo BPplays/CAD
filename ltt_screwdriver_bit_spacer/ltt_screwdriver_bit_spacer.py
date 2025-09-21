@@ -4,9 +4,13 @@ spacer_thickness = 2.0 # in millimeters
 
 # === variables end ===
 from dataclasses import dataclass, field
-import cadquery as cq # noqa
+import cadquery as cq  # noqa
 import cqgridfinity as cqg  # noqa
 import math  # noqa
+from pathlib import Path # noqa
+from cadquery import exporters
+from decimal import Decimal
+import argparse
 # pylint: skip-file
 if 'show_object' not in globals():
 	def show_object(*args, **kwargs):
@@ -53,20 +57,70 @@ def make_spacer(spacer):
 
 	return half_washer, spacer
 
+def loop_output(out_dir):
+
+	step = Decimal('0.5')
+	i = step
+	while i <= Decimal('10.0'):
+
+		spacer = Spacer(
+			name=f"ltt screwdriver bit spacer for {Decimal('20.0') - i}mm bits",
+			version=SemVer(1, 0, 0),
+			thickness=spacer_thickness,
+		)
+		print(f"making \"{spacer.name}\"")
+
+		result, spacer = make_spacer(spacer=spacer)
+		exporters.export(
+			result,
+			str(out_dir.joinpath(
+				f"{spacer.name} {str(spacer.version)}.step"
+			))
+		)
+		i += step
 
 def main():
-	wallet = Spacer(
-		name="ltt screwdriver bit spacer for 18mm bit",
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-l', '--loop', action="store_true",
+					 help='loop over 0.5 to 10mm spacers')
+	args = parser.parse_args()
+
+
+	try:
+		script_dir = Path(__file__).resolve().parent
+	except NameError:
+		print("can't get script path")
+
+		if __name__ == "__main__":
+			exit(1)
+		# script_dir = Path.cwd()
+
+	out_dir = script_dir.joinpath("out")
+	out_dir.mkdir(parents=True, exist_ok=True)
+
+	if args.loop:
+		loop_output(out_dir)
+		return
+
+	spacer = Spacer(
+		name=f"ltt screwdriver bit spacer for {Decimal(
+			'20.0'
+		) - Decimal(
+			str(spacer_thickness)
+		)}mm bits",
 		version=SemVer(1, 0, 0),
 		thickness=spacer_thickness,
 	)
 
-
-
-	# Unpack the dataclass instance into the function using asdict
-	holder_in = wallet
-	result, holder = make_spacer(spacer=holder_in)
-	show_object(result, name=holder.name+" v"+str(holder.version))
+	result, spacer = make_spacer(spacer=spacer)
+	show_object(result, name=spacer.name+" v"+str(spacer.version))
+	if __name__ == "__main__":
+		exporters.export(
+			result,
+			str(out_dir.joinpath(
+				f"{spacer.name} {str(spacer.version)}.step"
+			))
+		)
 
 
 main()
