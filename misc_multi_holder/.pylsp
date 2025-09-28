@@ -1,0 +1,8 @@
+{
+  "plugins": {
+    "pycodestyle": {
+      "ignore": ["E303", "E402"]
+    }
+  }
+}
+
