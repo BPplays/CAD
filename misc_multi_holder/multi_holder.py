@@ -453,7 +453,7 @@ def main():
 		name="aaa battery holder",
 		version=SemVer(1, 0, 0),
 
-		hole_size_flat=10.25,
+		hole_size_flat=10.225,
 		hole_depth=15.0,
 		fill_mm=18.0,
 		gridfin_height=7.0,
@@ -481,7 +481,7 @@ def main():
 		name="chapstick holder",
 		version=SemVer(1, 0, 0),
 
-		hole_size_flat=15.35,
+		hole_size_flat=15.60,
 		hole_depth=15.0,
 		fill_mm=18.0,
 		gridfin_height=7.0,
