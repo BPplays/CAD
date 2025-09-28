@@ -479,7 +479,7 @@ def main():
 
 	holders.append(Holder(
 		name="chapstick holder",
-		version=SemVer(1, 0, 0),
+		version=SemVer(1, 0, 1),
 
 		hole_size_flat=15.60,
 		hole_depth=15.0,
