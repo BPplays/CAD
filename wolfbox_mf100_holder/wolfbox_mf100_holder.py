@@ -453,7 +453,7 @@ def make_holder(holder):
 def main():
 	mf100 = Holder(
 		name="wolfbox mf100 holder",
-		version=SemVer(1, 0, 0),
+		version=SemVer(1, 0, 1),
 		gridfin_x=1,
 		gridfin_y=2,
 		gridfin_height=20,
@@ -489,10 +489,11 @@ def main():
 
 	if __name__ == "__main__" and (out_dir != doesnt_exist_script_dir):
 		exporters.export(
-			result,
-			str(out_dir.joinpath(
-				f"{holder.name} v{str(holder.version)}.step"
-			))
+			w=result,
+			fname=str(out_dir.joinpath(
+				f"{holder.name} v{str(holder.version)}.stl"
+			)),
+			tolerance=1e-5
 		)
 
 
