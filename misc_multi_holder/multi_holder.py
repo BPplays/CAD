@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from cadquery import exporters
+from pathlib import Path # noqa
 
 hole_margin_small = 0.6
 hole_margin_normal = 0.4
