@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import cadquery as cq
+from pathlib import Path # noqa
 
 
 class SemVer:
@@ -17,10 +18,10 @@ class Holder:
 	name: str = ""
 	version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
 
-	wallet_len: float = 104
-	wallet_width: float = 11
-	wallet_depth: float = 20
-	wallet_x_mov: float = -11
+	wallet_len: float = 51.3 + 0.4
+	wallet_width: float = 33.65
+	wallet_depth: float = 50
+	wallet_x_mov: float = 0
 
 
 	# Fill value (for 20mm use 7, for 50mm use 18; using 18)
@@ -36,7 +37,7 @@ class Holder:
 	# Chamfer size: for 20mm use 1.1; for 50mm use 2 (using 2)
 	hole_chamfer_size_x: float = 1.0
 	hole_chamfer_size_y: float = 2.5
-	hole_chamfer_size_wallet: float = 3
+	hole_chamfer_size_z: float = 2.5
 
 
 	# Padding values
@@ -53,8 +54,8 @@ class Holder:
 	no_lip_fillet_size: float = 0.3
 
 
-hole_margin_small = 0.6
-hole_margin_normal = 0.4
+hole_margin_small = 0.0
+hole_margin_normal = 0.0
 
 # # for hex 6.35mm bit hole_size_flat = 6.35 + 0.4
 # hole_size_flat = 0.5
@@ -205,7 +206,14 @@ def make_holder(holder):
 		.faces(">Z[-2]")
 		.edges()
 	)
+
+	result_pre_all_edges = (
+		result
+		.faces()
+		.edges()
+	)
 	# show_object(result_pre_hold_edges)
+
 
 
 
@@ -227,30 +235,25 @@ def make_holder(holder):
 
 
 
-	if hole_chamfer_size > 0:
-
-		result = (
-			result
-			.faces(">Z[-2]")  # Select the bottom face of the hexagonal holes
-			# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
-			.edges()
-			.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
-			# # ignore 4 longest edges, should always be the edge of the box
-			# .sort(lambda edge: edge.Length())[::-1][4:]
-			#
-			# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
-			# # .filter(lambda edge: edge.isCircle())
-			.chamfer(holder.hole_chamfer_size_wallet)
-		)
-
-
+	# if hole_chamfer_size > 0:
+	#
+	# 	result = (
+	# 		result
+	# 		.faces(">Z[-2]")  # Select the bottom face of the hexagonal holes
+	# 		# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
+	# 		.edges()
+	# 		.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
+	# 		# # ignore 4 longest edges, should always be the edge of the box
+	# 		# .sort(lambda edge: edge.Length())[::-1][4:]
+	# 		#
+	# 		# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
+	# 		# # .filter(lambda edge: edge.isCircle())
+	# 		.chamfer(holder.hole_chamfer_size_wallet)
+	# 	)
 
 
-	result_pre_hold_edges = (
-		result
-		.faces(">Z[-2]")
-		.edges()
-	)
+
+
 
 
 
@@ -263,95 +266,45 @@ def make_holder(holder):
 	card_size_dep = 20
 	card_size_y = 2.5
 
-	result = result.faces(f">Z[{z_face_flat}]").workplane(
-		).transformed(rotate=(0, 0, 0)
-		).moveTo(
-		(
-			5.5 + (card_size_y / 2)
-		), 0+(
-			47.5
-		)).rect(
-			sd_y,
-			sd_wid,
-		).cutBlind(
-			-(sd_dep)
-		)
 
 
-	result = result.faces(f">Z[{z_face_flat}]").workplane(
-		).transformed(rotate=(0, 0, 0)
-		).moveTo(
-		(
-			14.0 + (card_size_y / 2)
-		), 0+(
-			47.5
-		)).rect(
-			sd_y,
-			sd_wid,
-		).cutBlind(
-			-(sd_dep)
-		)
 
-
-	# result = result.faces(f">Z[{z_face_flat}]").workplane(
-	# 	).transformed(rotate=(0, 0, 0)
-	# 	).moveTo(
-	# 	(
-	# 		-1.5 + (card_size_y / 2)
-	# 	), 0+(
-	# 		-14
-	# 	)).rect(
-	# 		card_size_y,
-	# 		card_size_x,
-	# 	).cutBlind(
-	# 		-(card_size_dep)
-	# 	)
-
-	result = result.faces(f">Z[{z_face_flat}]").workplane(
-		).transformed(rotate=(0, 0, 0)
-		).moveTo(
-		(
-			14.0 + (card_size_y / 2)
-		), 0+(
-			-13.1
-		)).rect(
-			card_size_y,
-			card_size_x,
-		).cutBlind(
-			-(card_size_dep)
-		)
-	result = result.faces(f">Z[{z_face_flat}]").workplane(
-		).transformed(rotate=(0, 0, 0)
-		).moveTo(
-		(
-		   5.5 + (card_size_y / 2)
-		), 0+(
-			-13.1
-		)).rect(
-			card_size_y,
-			card_size_x,
-		).cutBlind(
-			-(card_size_dep)
-		)
 
 
 
 
 	if hole_chamfer_size > 0:
 
+		# result = (
+		# 	result
+		# 	.faces(">Z[-2]")  # Select the bottom face of the hexagonal holes
+		# 	# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
+		# 	.edges()
+		# 	.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
+		# 	# .edges("<Y[1]")
+		# 	# # ignore 4 longest edges, should always be the edge of the box
+		# 	# .sort(lambda edge: edge.Length())[::-1][4:]
+		# 	#
+		# 	# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
+		# 	# # .filter(lambda edge: edge.isCircle())
+		# 	.chamfer(holder.hole_chamfer_size_y)
+		# )
+
+
+
 		result = (
 			result
 			.faces(">Z[-2]")  # Select the bottom face of the hexagonal holes
 			# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
 			.edges()
 			.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
-			.edges("<Y[1]")
+			.edges("<Y")
 			# # ignore 4 longest edges, should always be the edge of the box
 			# .sort(lambda edge: edge.Length())[::-1][4:]
 			#
 			# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
 			# # .filter(lambda edge: edge.isCircle())
-			.chamfer(holder.hole_chamfer_size_y)
+			.chamfer(holder.hole_chamfer_size_y, holder.hole_chamfer_size_z)
 		)
 		# return result, holder
 
@@ -361,13 +314,13 @@ def make_holder(holder):
 			# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
 			.edges()
 			.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
-			.edges(">Y[1]")
+			.edges(">Y")
 			# # ignore 4 longest edges, should always be the edge of the box
 			# .sort(lambda edge: edge.Length())[::-1][4:]
 			#
 			# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
 			# # .filter(lambda edge: edge.isCircle())
-			.chamfer(holder.hole_chamfer_size_y)
+			.chamfer(holder.hole_chamfer_size_y, holder.hole_chamfer_size_z)
 		)
 		# return result, holder
 
@@ -377,13 +330,13 @@ def make_holder(holder):
 			# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
 			.edges()
 			.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
-			.edges("<X[1]")
+			.edges("<X")
 			# # ignore 4 longest edges, should always be the edge of the box
 			# .sort(lambda edge: edge.Length())[::-1][4:]
 			#
 			# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
 			# # .filter(lambda edge: edge.isCircle())
-			.chamfer(holder.hole_chamfer_size_x)
+			.chamfer(holder.hole_chamfer_size_x, holder.hole_chamfer_size_z)
 		)
 
 		result = (
@@ -392,17 +345,48 @@ def make_holder(holder):
 			# .edges("not(<<X[2] or >>X[2] or <<Y[2] or >>Y[2])")   # Select all straight edges
 			.edges()
 			.filter(lambda edge: edge not in result_pre_hold_edges.objects)  # Exclude specific edges
-			.edges("<X[4]")
+			.edges(">X")
 			# # ignore 4 longest edges, should always be the edge of the box
 			# .sort(lambda edge: edge.Length())[::-1][4:]
 			#
 			# .edges("not(<<X[0] or >>X[0] or <<Y[0] or >>Y[0])")   # Select all straight edges
 			# # .filter(lambda edge: edge.isCircle())
-			.chamfer(holder.hole_chamfer_size_x)
+			.chamfer(holder.hole_chamfer_size_x, holder.hole_chamfer_size_z)
 		)
 		# return result, holder
 
 
+
+
+	edges = (
+		result
+		.faces()  # Select the bottom face of the hexagonal holes
+		.edges()
+		.filter(lambda edge: edge not in result_pre_all_edges.objects)  # Exclude specific edges
+		.edges("|Z")
+	)
+
+	edges2 = (
+		result
+		.faces()  # Select the bottom face of the hexagonal holes
+		.edges()
+		.filter(lambda edge: edge not in result_pre_all_edges.objects)  # Exclude specific edges
+		.edges("<<Y[5] or >>Y[5]")
+		.edges("<<Z[1]")
+	)
+
+	result = (
+		result
+		.faces()  # Select the bottom face of the hexagonal holes
+		.edges()
+		.filter(lambda edge: edge not in result_pre_all_edges.objects)  # Exclude specific edges
+		.filter(lambda edge: (edge in edges.objects) or (edge in edges2.objects))  # Exclude specific edges
+		# .edges("|Z")
+		# .edges("<<Y[5] or >>Y[5]")
+		# .edges("<<Z[1]")
+		.fillet(5)
+	)
+	return result, holder
 
 
 	if no_lip:
@@ -427,21 +411,28 @@ def make_holder(holder):
 
 
 def main():
-	wallet = Holder(
-		name="wallet holder",
+	mf100 = Holder(
+		name="wolfbox mf100 holder",
 		version=SemVer(1, 0, 0),
 		gridfin_x=1,
-		gridfin_y=3,
-		gridfin_height=5,
+		gridfin_y=2,
+		gridfin_height=20,
 		no_lip=True,
 		no_lip_upper_size=1.25,
-		fill_mm=25,
+		hole_chamfer_size_x=2.9,
+		hole_chamfer_size_y=10,
+		hole_chamfer_size_z=10,
+		wallet_depth=-1,
+		fill_mm=-1,
 	)
+
+	mf100.wallet_depth = 43 + mf100.hole_chamfer_size_z
+	mf100.fill_mm = mf100.wallet_depth + 5
 
 
 
 	# Unpack the dataclass instance into the function using asdict
-	holder_in = wallet
+	holder_in = mf100
 	result, holder = make_holder(holder=holder_in)
 	show_object(result, name=holder.name+" v"+str(holder.version))
 
