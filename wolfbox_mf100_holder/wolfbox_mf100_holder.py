@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import cadquery as cq
+from cadquery import exporters
 from pathlib import Path # noqa
 
 
@@ -17,11 +18,13 @@ class SemVer:
 class Holder:
 	name: str = ""
 	version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
+	charge_slot: bool = True
 
 	wallet_len: float = 51.3 + 0.4
 	wallet_width: float = 33.65
 	wallet_depth: float = 50
 	wallet_x_mov: float = 0
+	usb_size: float = 15
 
 
 	# Fill value (for 20mm use 7, for 50mm use 18; using 18)
@@ -56,6 +59,9 @@ class Holder:
 
 hole_margin_small = 0.0
 hole_margin_normal = 0.0
+
+
+doesnt_exist_script_dir = "script dir doesn't exist"
 
 # # for hex 6.35mm bit hole_size_flat = 6.35 + 0.4
 # hole_size_flat = 0.5
@@ -230,7 +236,7 @@ def make_holder(holder):
 			holder.wallet_len,
 		).cutBlind(
 			-(holder.wallet_depth)
-		)
+	)
 
 
 
@@ -384,9 +390,9 @@ def make_holder(holder):
 		# .edges("|Z")
 		# .edges("<<Y[5] or >>Y[5]")
 		# .edges("<<Z[1]")
-		.fillet(5)
+		.fillet(7)
 	)
-	return result, holder
+	# return result, holder
 
 
 	if no_lip:
@@ -405,6 +411,40 @@ def make_holder(holder):
 			.faces(">Z")  # Select the bottom face of the hexagonal holes
 			.edges("%LINE")   # Select all straight edges
 			.fillet(no_lip_fillet_size)
+		)
+
+
+	result_pre_all_edges = (
+		result
+		.faces()
+		.edges()
+	)
+
+	result = result.faces(f">Z[{z_face_flat}]").workplane(
+		).transformed(offset=(0, 0, holder.no_lip_upper_size + 5), rotate=(0, 0, 0)
+		).moveTo(
+		(
+			holder.wallet_x_mov
+		), 0+(
+			30
+		)).rect(
+			holder.usb_size,
+			40,
+		).cutBlind(
+			-(holder.wallet_depth + holder.no_lip_upper_size + 5)
+	)
+
+
+	if holder.charge_slot:
+		result = (
+			result
+			.faces()  # Select the bottom face of the hexagonal holes
+			.edges()
+			.filter(lambda edge: edge not in result_pre_all_edges.objects)  # Exclude specific edges
+			# .edges("|Z")
+			# .edges("<<Y[5] or >>Y[5]")
+			.edges("(<<Z[9]) or <<Z[8] or << Z[7] or <<Z[5] or (<<Z[4] and |Y)")
+			.fillet(0.4)
 		)
 
 	return result, holder
@@ -431,10 +471,29 @@ def main():
 
 
 
-	# Unpack the dataclass instance into the function using asdict
+	try:
+		script_dir = Path(__file__).resolve().parent
+		out_dir = script_dir.joinpath("out")
+		out_dir.mkdir(parents=True, exist_ok=True)
+	except NameError:
+		print("can't get script path")
+		out_dir = doesnt_exist_script_dir
+
+		if __name__ == "__main__":
+			exit(1)
+
+
 	holder_in = mf100
 	result, holder = make_holder(holder=holder_in)
 	show_object(result, name=holder.name+" v"+str(holder.version))
+
+	if __name__ == "__main__" and (out_dir != doesnt_exist_script_dir):
+		exporters.export(
+			result,
+			str(out_dir.joinpath(
+				f"{holder.name} v{str(holder.version)}.step"
+			))
+		)
 
 
 main()
