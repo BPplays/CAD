@@ -117,6 +117,70 @@ if 'show_object' not in globals():
 		pass
 # pylint: skip-file
 
+class Shape:
+	def __init__(
+		self,
+		type: str,
+		sizes: dict[str, float],
+	):
+		self.type = type
+		self.sizes = sizes
+
+	def SetSize():
+		pass
+
+	def GetSize():
+		pass
+
+class Hexagon(Shape):
+	def __init__(
+		self,
+		flat_side_size: float,
+	):
+		self.type = "hexagon"
+		self.setSize(flat_side_size)
+
+	def SetSize(self, flat_side_size: float):
+		self.sizes["flat_side_size"] = flat_side_size
+
+	def GetSize(self) -> (float, float):
+		flat_side_size = self.sizes["flat_side_size"]
+
+		hex_short_to_long = 1.1547
+		pointy_side_size = flat_side_size * hex_short_to_long
+		return flat_side_size, pointy_side_size
+
+
+class Circle(Shape):
+	def __init__(
+		self,
+		diameter: float,
+	):
+		self.type = "circle"
+		self.setSize(diameter)
+
+	def SetSize(self, diameter: float):
+		self.sizes["diameter"] = diameter
+
+	def GetSize(self) -> (float):
+		return self.sizes["diameter"]
+
+class Rect(Shape):
+	def __init__(
+		self,
+		x: float,
+		y: float,
+	):
+		self.type = "circle"
+		self.setSize(x, y)
+
+	def SetSize(self, x: float, y: float):
+		self.sizes["x"] = x
+		self.sizes["y"] = y
+
+	def GetSize(self) -> (float, float):
+		return self.sizes["x"], self.sizes["y"]
+
 
 def get_move_xy(
 	size_dw,
