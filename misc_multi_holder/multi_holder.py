@@ -372,6 +372,10 @@ def size_increase_drill(
 ) -> float:
 	hole_size_cir = 0
 	hole_size_cir_base = size
+	total_loops += 1
+
+	max_diameter = holder.hole_shape_max.GetSize()
+	min_diameter = holder.hole_shape_min.GetSize()
 
 	print("xy", i_x, i_y)
 
@@ -386,6 +390,9 @@ def size_increase_drill(
 		else:
 			hole_size_cir = hole_size_cir_base
 
+
+		hole_size_cir = max(hole_size_cir, min_diameter)
+		hole_size_cir = min(hole_size_cir, max_diameter)
 		if hole_size_cir < 1.6:
 			hole_size_cir += hole_margin_small
 		else:
@@ -394,10 +401,6 @@ def size_increase_drill(
 		if loop_index % holder.increase_copies == 0:
 			hole_size_cir_base += holder.increase_amount
 
-	max_diameter = holder.hole_shape_max.GetSize()
-	min_diameter = holder.hole_shape_min.GetSize()
-	hole_size_cir = max(hole_size_cir, min_diameter)
-	hole_size_cir = min(hole_size_cir, max_diameter)
 	print("loop", total_loops, "radius", hole_size_cir)
 	return hole_size_cir
 
@@ -752,10 +755,9 @@ def main():
 		version=SemVer(1, 0, 0),
 		hole_shape=Circle(0.5),
 		hole_shape_max=Circle(10.0),
-		hole_shape_min=Circle(0.5),
+		hole_shape_min=Circle(0.01),
 		size_func=size_increase_drill,
 
-		hole_size_flat=0.5,
 		hole_depth=15.0,
 		fill_mm=18.0,
 		gridfin_height=7.0,
@@ -764,7 +766,6 @@ def main():
 		hole_num_y=4,
 		gridfin_y=2,
 		hole_chamfer_size=2.0,
-		hole_circle=True,
 		increase_copies=1,
 		increase_amount=0.5,
 		hole_max_size=10.0,
