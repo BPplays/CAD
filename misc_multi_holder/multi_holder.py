@@ -254,61 +254,92 @@ class Rect(HoleShape):
 
 
 
-def size_none_increase(size: float, _, __) -> float:
+def size_none_increase(
+	size: float,
+	_,
+	__,
+	___,
+	____,
+) -> float:
 	return size
 
 
-@dataclass
+# @dataclass
 class Holder:
-	name: str = ""
-	version: SemVer = None
-	hole_shape: HoleShape = None
-	hole_shape_limit: HoleShape = None
-	# version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
-	# hole_shape: HoleShape = field(default_factory=lambda: Rect(1, 1))
-	# hole_shape_limit: HoleShape = field(default_factory=lambda: Rect(1, 1))
-	size_func: Callable[[float, any, float], float] = field(
-		default_factory=lambda: size_none_increase
-	)
+	def __init__(
+		self,
+		name: str = "",
+		version: Optional[SemVer] = None,
+		hole_shape: Optional[HoleShape] = None,
+		hole_shape_max: Optional[HoleShape] = None,
+		hole_shape_min: Optional[HoleShape] = None,
+		size_func: Optional[Callable[[float, Any, int, int], float]] = None,
+		*,
+		# primitives (same defaults as your dataclass)
+		hole_size_flat: float = 0.5,
+		hole_depth: float = 15.0,
+		fill_mm: float = 18.0,
+		gridfin_height: float = 7.0,
+		hole_num_x: int = 5,
+		gridfin_x: int = 2,
+		hole_num_y: int = 4,
+		gridfin_y: int = 2,
+		hole_chamfer_size: float = 2.0,
+		hole_circle: bool = True,
+		increase_copies: int = 1,
+		increase_amount: float = 0.5,
+		hole_max_size: float = 10.0,
+		hole_min_size: float = 0.5,
+		increase_loop_after: int = 20,
+		edge_padding: float = 0.0,
+		x_padding: float = 6.0,
+		y_padding: float = 6.0,
+		y_uppies: float = 12.0,
+		no_lip: bool = True,
+		no_lip_upper_size: float = 2.0,
+		no_lip_fillet_size: float = 0.3,
+	) -> None:
+		# simple fields
+		self.name = name
+		self.version = version if version is not None else SemVer(1, 0, 0)
 
-	# Hole dimensions and related values
-	hole_size_flat: float = 0.5
-	# For a 20mm application: hole_depth = 6.5; for 50mm: hole_depth = 15 (using 15)
-	hole_depth: float = 15.0
+		# Hole shapes: ensure valid instances
+		self.hole_shape = hole_shape if hole_shape is not None else Rect(1, 1)
+		self.hole_shape_max = (
+			hole_shape_max if hole_shape_max is not None else Rect(1, 1)
+		)
 
-	# Fill value (for 20mm use 7, for 50mm use 18; using 18)
-	fill_mm: float = 18.0
+		self.hole_shape_min = (
+			hole_shape_min if hole_shape_min is not None else Rect(1, 1)
+		)
 
-	# Grid fin parameters
-	gridfin_height: float = 7.0
-	hole_num_x: int = 5
-	gridfin_x: int = 2
-	hole_num_y: int = 4
-	gridfin_y: int = 2
+		# size function
+		self.size_func = size_func if size_func is not None else size_none_increase
 
-	# Chamfer size: for 20mm use 1.1; for 50mm use 2 (using 2)
-	hole_chamfer_size: float = 2.0
+		# primitive defaults
+		self.hole_size_flat = float(hole_size_flat)
+		self.hole_depth = float(hole_depth)
+		self.fill_mm = float(fill_mm)
+		self.gridfin_height = float(gridfin_height)
+		self.hole_num_x = int(hole_num_x)
+		self.gridfin_x = int(gridfin_x)
+		self.hole_num_y = int(hole_num_y)
+		self.gridfin_y = int(gridfin_y)
+		self.hole_chamfer_size = float(hole_chamfer_size)
+		self.hole_circle = bool(hole_circle)
+		self.increase_copies = int(increase_copies)
+		self.increase_amount = float(increase_amount)
+		self.hole_max_size = float(hole_max_size)
+		self.hole_min_size = float(hole_min_size)
+		self.increase_loop_after = int(increase_loop_after)
+		self.edge_padding = float(edge_padding)
+		self.x_padding = float(x_padding)
+		self.y_padding = float(y_padding)
+		self.y_uppies = float(y_uppies)
+		self.no_lip = bool(no_lip)
+		self.no_lip_upper_size = float(no_lip_upper_size)
+		self.no_lip_fillet_size = float(no_lip_fillet_size)
 
-	# Hole properties for circular holes
-	hole_circle: bool = True
-	increase_copies: int = 1
-	increase_amount: float = 0.5
-	hole_max_size: float = 10.0
-	hole_min_size: float = 0.5
-	increase_loop_after: int = 20
-
-	# Padding values
-	edge_padding: float = 0.0
-	x_padding: float = 6.0
-	y_padding: float = 6.0
-
-	# Y uppies
-	y_uppies: float = 12.0
-
-	# No lip options
-	no_lip: bool = True
-	no_lip_upper_size: float = 2.0
-	no_lip_fillet_size: float = 0.3
 	def __post_init__(self) -> None:
 		# Ensure version is always a SemVer instance
 		if self.version is None:
@@ -332,30 +363,42 @@ class Holder:
 
 
 
-def size_increase_drill(size: float, holder: "Holder", total_loops: int) -> float:
+def size_increase_drill(
+	size: float,
+	holder: "Holder",
+	i_x: int,
+	i_y: int,
+	total_loops,
+) -> float:
 	hole_size_cir = 0
 	hole_size_cir_base = size
 
-	for _ in range(total_loops):
-		if total_loops % holder.increase_loop_after == 0:
-			hole_size_cir_base = (size)
+	print("xy", i_x, i_y)
 
+	for loop_index in range(total_loops):
+		if loop_index % holder.increase_loop_after == 0:
+			hole_size_cir_base = size
 
-		if hole_size_cir_base > (holder.hole_max_size):
-			hole_size_cir = (holder.hole_max_size)
-		elif hole_size_cir_base < (holder.hole_min_size):
-			hole_size_cir = (holder.hole_min_size)
+		if hole_size_cir_base > holder.hole_max_size:
+			hole_size_cir = holder.hole_max_size
+		elif hole_size_cir_base < holder.hole_min_size:
+			hole_size_cir = holder.hole_min_size
 		else:
 			hole_size_cir = hole_size_cir_base
 
-		if hole_size_cir < (1.6):
-			hole_size_cir += (hole_margin_small)
+		if hole_size_cir < 1.6:
+			hole_size_cir += hole_margin_small
 		else:
-			hole_size_cir += (hole_margin_normal)
+			hole_size_cir += hole_margin_normal
 
-		if total_loops % holder.increase_copies == 0:
-			hole_size_cir_base += (holder.increase_amount)
+		if loop_index % holder.increase_copies == 0:
+			hole_size_cir_base += holder.increase_amount
 
+	max_diameter = holder.hole_shape_max.GetSize()
+	min_diameter = holder.hole_shape_min.GetSize()
+	hole_size_cir = max(hole_size_cir, min_diameter)
+	hole_size_cir = min(hole_size_cir, max_diameter)
+	print("loop", total_loops, "radius", hole_size_cir)
 	return hole_size_cir
 
 
@@ -404,13 +447,15 @@ def make_cut(
 	workplane,
 	holder: Holder,
 	hole_depth: float,
+	i_x: int,
+	i_y: int,
 	total_loops: int,
 ):
 
 	if shape.type_ == "circle":
 		diameter = shape.GetSize()
 		result = workplane.circle(
-			holder.size_func(diameter / 2, holder, total_loops),
+			holder.size_func(diameter, holder, i_x, i_y, total_loops) / 2,
 		).cutBlind(
 			-(hole_depth)
 		)
@@ -419,7 +464,7 @@ def make_cut(
 		hole_size_flat, hole_size_pointy = shape.GetSize()
 		result = workplane.polygon(
 			6,
-			holder.size_func(hole_size_pointy, holder, total_loops),
+			holder.size_func(hole_size_pointy, holder, i_x, i_y, total_loops),
 		).cutBlind(
 			-(hole_depth)
 		)
@@ -427,8 +472,8 @@ def make_cut(
 	if shape.type_ == "rect":
 		x, y = shape.GetSize()
 		result = workplane.rect(
-			holder.size_func(x, holder, total_loops),
-			holder.size_func(y, holder, total_loops),
+			holder.size_func(x, holder, i_x, i_y, total_loops),
+			holder.size_func(y, holder, i_x, i_y, total_loops),
 		).cutBlind(
 			-(hole_depth)
 		)
@@ -447,7 +492,7 @@ def make_hole(
 	move_x: float,
 	move_y: float,
 	z_face_flat,
-	total_loops,
+	total_loops: int,
 ):
 	shape = holder.hole_shape
 
@@ -458,11 +503,15 @@ def make_hole(
 		), start_virt+(
 			i2*move_y
 		))
+	# show_object(wp)
+	# return wp
 	result = make_cut(
 		shape=shape,
 		workplane=wp,
 		holder=holder,
 		hole_depth=holder.hole_depth,
+		i_x=i,
+		i_y=i2,
 		total_loops=total_loops
 	)
 	return result
@@ -584,24 +633,24 @@ def make_holder(holder):
 
 
 	# hole_size_cir = hole_size_flat
-	total_loops = 0
 
+	total_loops = 0
 	for i2 in range(hole_num_y):
 		for i in range(hole_num_x):
 			result = make_hole(
-				holder,
-				result,
-				i,
-				i2,
-				start_hor,
-				start_virt,
-				move_x,
-				move_y,
-				z_face_flat,
-				total_loops,
+				holder=holder,
+				result=result,
+				i=i,
+				i2=i2,
+				start_hor=start_hor,
+				start_virt=start_virt,
+				move_x=move_x,
+				move_y=move_y,
+				z_face_flat=z_face_flat,
+				total_loops=total_loops,
 			)
-
 			total_loops += 1
+
 
 	if hole_chamfer_size > 0:
 
@@ -702,7 +751,8 @@ def main():
 		name="drill bit holder",
 		version=SemVer(1, 0, 0),
 		hole_shape=Circle(0.5),
-		hole_shape_limit=Circle(10.0),
+		hole_shape_max=Circle(10.0),
+		hole_shape_min=Circle(0.5),
 		size_func=size_increase_drill,
 
 		hole_size_flat=0.5,
@@ -728,96 +778,96 @@ def main():
 		no_lip_upper_size=2.0,
 		no_lip_fillet_size=0.3
 	))
-
-	holders.append(Holder(
-		name="aa battery holder",
-		version=SemVer(1, 0, 2),
-		hole_shape=Circle(14.4),
-		hole_shape_limit=Circle(14.4),
-
-		hole_size_flat=14.4,
-		hole_depth=15.0,
-		fill_mm=18.0,
-		gridfin_height=7.0,
-		hole_num_x=4,
-		gridfin_x=2,
-		hole_num_y=2,
-		gridfin_y=1,
-		hole_chamfer_size=2.35,
-		hole_circle=True,
-		increase_copies=1,
-		increase_amount=0,
-		hole_max_size=10000,
-		hole_min_size=0,
-		increase_loop_after=20,
-		edge_padding=0.0,
-		x_padding=2.0,
-		y_padding=1,
-		y_uppies=0,
-		no_lip=True,
-		no_lip_upper_size=2.0,
-		no_lip_fillet_size=0.3
-	))
-
-	holders.append(Holder(
-		name="aaa battery holder",
-		version=SemVer(1, 0, 0),
-		hole_shape=Circle(10.225),
-		hole_shape_limit=Circle(10.225),
-
-		hole_size_flat=10.225,
-		hole_depth=15.0,
-		fill_mm=18.0,
-		gridfin_height=7.0,
-		hole_num_x=4,
-		gridfin_x=2,
-		hole_num_y=2,
-		gridfin_y=1,
-		hole_chamfer_size=4.5,
-		hole_circle=True,
-		increase_copies=1,
-		increase_amount=0,
-		hole_max_size=10000,
-		hole_min_size=0,
-		increase_loop_after=20,
-		edge_padding=0.0,
-		x_padding=3.5,
-		y_padding=3,
-		y_uppies=0,
-		no_lip=True,
-		no_lip_upper_size=2.0,
-		no_lip_fillet_size=0.3
-	))
-
-	holders.append(Holder(
-		name="chapstick holder",
-		version=SemVer(1, 0, 1),
-		hole_shape=Circle(15.60),
-		hole_shape_limit=Circle(15.60),
-
-		hole_size_flat=15.60,
-		hole_depth=15.0,
-		fill_mm=18.0,
-		gridfin_height=7.0,
-		hole_num_x=4,
-		gridfin_x=2,
-		hole_num_y=2,
-		gridfin_y=1,
-		hole_chamfer_size=1.7,
-		hole_circle=True,
-		increase_copies=1,
-		increase_amount=0,
-		hole_max_size=10000,
-		hole_min_size=0,
-		increase_loop_after=1,
-		edge_padding=0.0,
-		x_padding=0.5,
-		y_padding=0.3,
-		y_uppies=0,
-		no_lip=True,
-		no_lip_upper_size=2.0,
-		no_lip_fillet_size=0.3
-	))
+	#
+	# holders.append(Holder(
+	# 	name="aa battery holder",
+	# 	version=SemVer(1, 0, 2),
+	# 	hole_shape=Circle(14.4),
+	# 	hole_shape_limit=Circle(14.4),
+	#
+	# 	hole_size_flat=14.4,
+	# 	hole_depth=15.0,
+	# 	fill_mm=18.0,
+	# 	gridfin_height=7.0,
+	# 	hole_num_x=4,
+	# 	gridfin_x=2,
+	# 	hole_num_y=2,
+	# 	gridfin_y=1,
+	# 	hole_chamfer_size=2.35,
+	# 	hole_circle=True,
+	# 	increase_copies=1,
+	# 	increase_amount=0,
+	# 	hole_max_size=10000,
+	# 	hole_min_size=0,
+	# 	increase_loop_after=20,
+	# 	edge_padding=0.0,
+	# 	x_padding=2.0,
+	# 	y_padding=1,
+	# 	y_uppies=0,
+	# 	no_lip=True,
+	# 	no_lip_upper_size=2.0,
+	# 	no_lip_fillet_size=0.3
+	# ))
+	#
+	# holders.append(Holder(
+	# 	name="aaa battery holder",
+	# 	version=SemVer(1, 0, 0),
+	# 	hole_shape=Circle(10.225),
+	# 	hole_shape_limit=Circle(10.225),
+	#
+	# 	hole_size_flat=10.225,
+	# 	hole_depth=15.0,
+	# 	fill_mm=18.0,
+	# 	gridfin_height=7.0,
+	# 	hole_num_x=4,
+	# 	gridfin_x=2,
+	# 	hole_num_y=2,
+	# 	gridfin_y=1,
+	# 	hole_chamfer_size=4.5,
+	# 	hole_circle=True,
+	# 	increase_copies=1,
+	# 	increase_amount=0,
+	# 	hole_max_size=10000,
+	# 	hole_min_size=0,
+	# 	increase_loop_after=20,
+	# 	edge_padding=0.0,
+	# 	x_padding=3.5,
+	# 	y_padding=3,
+	# 	y_uppies=0,
+	# 	no_lip=True,
+	# 	no_lip_upper_size=2.0,
+	# 	no_lip_fillet_size=0.3
+	# ))
+	#
+	# holders.append(Holder(
+	# 	name="chapstick holder",
+	# 	version=SemVer(1, 0, 1),
+	# 	hole_shape=Circle(15.60),
+	# 	hole_shape_limit=Circle(15.60),
+	#
+	# 	hole_size_flat=15.60,
+	# 	hole_depth=15.0,
+	# 	fill_mm=18.0,
+	# 	gridfin_height=7.0,
+	# 	hole_num_x=4,
+	# 	gridfin_x=2,
+	# 	hole_num_y=2,
+	# 	gridfin_y=1,
+	# 	hole_chamfer_size=1.7,
+	# 	hole_circle=True,
+	# 	increase_copies=1,
+	# 	increase_amount=0,
+	# 	hole_max_size=10000,
+	# 	hole_min_size=0,
+	# 	increase_loop_after=1,
+	# 	edge_padding=0.0,
+	# 	x_padding=0.5,
+	# 	y_padding=0.3,
+	# 	y_uppies=0,
+	# 	no_lip=True,
+	# 	no_lip_upper_size=2.0,
+	# 	no_lip_fillet_size=0.3
+	# ))
 
 
 	try:
