@@ -88,7 +88,7 @@ class HoleShape:
 	def __init__(
 		self,
 		type_: str,
-		sizes: Optional[Dict[str, float]] = None,
+		sizes: Optional[Dict[str, Number]] = None,
 	):
 		self.type_ = type_
 		self.sizes = sizes
@@ -101,107 +101,122 @@ class HoleShape:
 	def GetSize(self):
 		raise NotImplementedError
 
-	# # helper to merge keys and produce new sizes dict
-	# def _apply_op(
-	# 	self,
-	# 	other: Union[Dict[str, Number], Number],
-	# 	op: str,
-	# ) -> Dict[str, float]:
-	# 	"""Return a new sizes dict after applying operation.
-	# 	op in {"add", "sub", "mul", "div"}.
-	# 	If other is a scalar apply to every key.
-	# 	If other is a dict: for add/sub missing keys -> 0; for mul/div missing keys -> 1.
-	# 	Keys present only in `other` are included in the result.
-	# 	"""
-	# 	if isinstance(other, (int, float)):
-	# 		# scalar path
-	# 		if op == "add":
-	# 			return {k: float(v + other) for k, v in self.sizes.items()}
-	# 		if op == "sub":
-	# 			return {k: float(v - other) for k, v in self.sizes.items()}
-	# 		if op == "mul":
-	# 			return {k: float(v * other) for k, v in self.sizes.items()}
-	# 		if op == "div":
-	# 			if other == 0:
-	# 				raise ValueError("Division by zero (scalar).")
-	# 			return {k: float(v / other) for k, v in self.sizes.items()}
-	# 		raise ValueError(f"Unknown op {op}")
-	#
-	# 	# other is a dict path
-	# 	other_dict = {k: float(v) for k, v in other.items()}
-	# 	# union of keys
-	# 	all_keys = set(self.sizes.keys()) | set(other_dict.keys())
-	# 	result: Dict[str, float] = {}
-	#
-	# 	for k in all_keys:
-	# 		a = float(self.sizes.get(k, 0.0))
-	# 		b = float(other_dict.get(k, 0.0))
-	#
-	# 		if op == "add":
-	# 			# missing other treated as 0 by using .get above
-	# 			result[k] = a + b
-	# 		elif op == "sub":
-	# 			# missing other treated as 0
-	# 			result[k] = a - b
-	# 		elif op == "mul":
-	# 			# missing other should be treated as 1 (so adjust b)
-	# 			b = other_dict.get(k, 1.0)
-	# 			result[k] = a * float(b)
-	# 		elif op == "div":
-	# 			b = other_dict.get(k, 1.0)
-	# 			if b == 0:
-	# 				raise ValueError(f"Division by zero for key '{k}'")
-	# 			# if a missing previously we used 0.0 -> 0 / b == 0
-	# 			result[k] = a / float(b)
-	# 		else:
-	# 			raise ValueError(f"Unknown op {op}")
-	#
-	# 	return result
-	#
-	# # public arithmetic methods
-	# def Add(
-	# 	self,
-	# 	other: Union[Dict[str, Number], Number],
-	# 	in_place: bool = True,
-	# ) -> "HoleShape":
-	# 	new_sizes = self._apply_op(other, "add")
-	# 	if in_place:
-	# 		self.sizes = new_sizes
-	# 		return self
-	# 	return HoleShape(self.type, new_sizes)
-	#
-	# def Subtract(
-	# 	self,
-	# 	other: Union[Dict[str, Number], Number],
-	# 	in_place: bool = True,
-	# ) -> "HoleShape":
-	# 	new_sizes = self._apply_op(other, "sub")
-	# 	if in_place:
-	# 		self.sizes = new_sizes
-	# 		return self
-	# 	return HoleShape(self.type, new_sizes)
-	#
-	# def Mult(
-	# 	self,
-	# 	other: Union[Dict[str, Number], Number],
-	# 	in_place: bool = True,
-	# ) -> "HoleShape":
-	# 	new_sizes = self._apply_op(other, "mul")
-	# 	if in_place:
-	# 		self.sizes = new_sizes
-	# 		return self
-	# 	return HoleShape(self.type, new_sizes)
-	#
-	# def Div(
-	# 	self,
-	# 	other: Union[Dict[str, Number], Number],
-	# 	in_place: bool = True,
-	# ) -> "HoleShape":
-	# 	new_sizes = self._apply_op(other, "div")
-	# 	if in_place:
-	# 		self.sizes = new_sizes
-	# 		return self
-	# 	return HoleShape(self.type, new_sizes)
+	def GetXY(self):
+		raise NotImplementedError
+
+	def MakeCut(
+		self,
+		workplane,
+		holder: Holder,
+		hole_depth: float,
+		i_x: int,
+		i_y: int,
+		total_loops: int,
+	):
+		raise NotImplementedError
+
+
+	# helper to merge keys and produce new sizes dict
+	def _apply_op(
+		self,
+		other: Union[Dict[str, Number], Number],
+		op: str,
+	) -> Dict[str, float]:
+		"""Return a new sizes dict after applying operation.
+		op in {"add", "sub", "mul", "div"}.
+		If other is a scalar apply to every key.
+		If other is a dict: for add/sub missing keys -> 0; for mul/div missing keys -> 1.
+		Keys present only in `other` are included in the result.
+		"""
+		if isinstance(other, (int, float)):
+			# scalar path
+			if op == "add":
+				return {k: float(v + other) for k, v in self.sizes.items()}
+			if op == "sub":
+				return {k: float(v - other) for k, v in self.sizes.items()}
+			if op == "mul":
+				return {k: float(v * other) for k, v in self.sizes.items()}
+			if op == "div":
+				if other == 0:
+					raise ValueError("Division by zero (scalar).")
+				return {k: float(v / other) for k, v in self.sizes.items()}
+			raise ValueError(f"Unknown op {op}")
+
+		# other is a dict path
+		other_dict = {k: float(v) for k, v in other.items()}
+		# union of keys
+		all_keys = set(self.sizes.keys()) | set(other_dict.keys())
+		result: Dict[str, float] = {}
+
+		for k in all_keys:
+			a = float(self.sizes.get(k, 0.0))
+			b = float(other_dict.get(k, 0.0))
+
+			if op == "add":
+				# missing other treated as 0 by using .get above
+				result[k] = a + b
+			elif op == "sub":
+				# missing other treated as 0
+				result[k] = a - b
+			elif op == "mul":
+				# missing other should be treated as 1 (so adjust b)
+				b = other_dict.get(k, 1.0)
+				result[k] = a * float(b)
+			elif op == "div":
+				b = other_dict.get(k, 1.0)
+				if b == 0:
+					raise ValueError(f"Division by zero for key '{k}'")
+				# if a missing previously we used 0.0 -> 0 / b == 0
+				result[k] = a / float(b)
+			else:
+				raise ValueError(f"Unknown op {op}")
+
+		return result
+
+	# public arithmetic methods
+	def Add(
+		self,
+		other: Union[Dict[str, Number], Number],
+		in_place: bool = True,
+	) -> "HoleShape":
+		new_sizes = self._apply_op(other, "add")
+		if in_place:
+			self.sizes = new_sizes
+			return self
+		return HoleShape(self.type, new_sizes)
+
+	def Subtract(
+		self,
+		other: Union[Dict[str, Number], Number],
+		in_place: bool = True,
+	) -> "HoleShape":
+		new_sizes = self._apply_op(other, "sub")
+		if in_place:
+			self.sizes = new_sizes
+			return self
+		return HoleShape(self.type, new_sizes)
+
+	def Mult(
+		self,
+		other: Union[Dict[str, Number], Number],
+		in_place: bool = True,
+	) -> "HoleShape":
+		new_sizes = self._apply_op(other, "mul")
+		if in_place:
+			self.sizes = new_sizes
+			return self
+		return HoleShape(self.type, new_sizes)
+
+	def Div(
+		self,
+		other: Union[Dict[str, Number], Number],
+		in_place: bool = True,
+	) -> "HoleShape":
+		new_sizes = self._apply_op(other, "div")
+		if in_place:
+			self.sizes = new_sizes
+			return self
+		return HoleShape(self.type, new_sizes)
 
 class Hexagon(HoleShape):
 	def __init__(
@@ -221,6 +236,34 @@ class Hexagon(HoleShape):
 		pointy_side_size = flat_side_size * hex_short_to_long
 		return flat_side_size, pointy_side_size
 
+	def GetXY(self, direction: str):
+		hole_size = 0
+		hole_size_flat, hole_size_pointy = self.GetSize()
+		if direction == "x":
+			hole_size = hole_size_pointy
+
+		if direction == "y":
+			hole_size = hole_size_flat
+		return hole_size
+
+	def MakeCut(
+		self,
+		workplane,
+		holder: Holder,
+		hole_depth: float,
+		i_x: int,
+		i_y: int,
+		total_loops: int,
+	):
+		hole_size_flat, hole_size_pointy = self.GetSize()
+		result = workplane.polygon(
+			6,
+			holder.size_func(hole_size_pointy, holder, i_x, i_y, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+		return result
+
 
 class Circle(HoleShape):
 	def __init__(
@@ -235,6 +278,30 @@ class Circle(HoleShape):
 
 	def GetSize(self) -> (float):
 		return self.sizes["diameter"]
+
+	def GetXY(self, direction: str):
+		hole_size = 0
+		diameter = self.GetSize()
+		hole_size = diameter
+		return hole_size
+
+	def MakeCut(
+		self,
+		workplane,
+		holder: Holder,
+		hole_depth: float,
+		i_x: int,
+		i_y: int,
+		total_loops: int,
+	):
+		diameter = self.GetSize()
+		result = workplane.circle(
+			holder.size_func(diameter, holder, i_x, i_y, total_loops) / 2,
+		).cutBlind(
+			-(hole_depth)
+		)
+		return result
+
 
 class Rect(HoleShape):
 	def __init__(
@@ -252,15 +319,51 @@ class Rect(HoleShape):
 	def GetSize(self) -> (float, float):
 		return self.sizes["x"], self.sizes["y"]
 
+	def GetXY(self, direction: str):
+		hole_size = 0
+
+		x, y = self.GetSize()
+
+		if direction == "x":
+			hole_size = x
+
+		if direction == "y":
+			hole_size = y
+
+		return hole_size
+
+	def MakeCut(
+		self,
+		workplane,
+		holder: Holder,
+		hole_depth: float,
+		i_x: int,
+		i_y: int,
+		total_loops: int,
+	):
+		x, y = self.GetSize()
+		result = workplane.rect(
+			holder.size_func(x, holder, i_x, i_y, total_loops),
+			holder.size_func(y, holder, i_x, i_y, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+		return result
 
 
-def size_none_increase(
+
+def size_default_increase(
 	size: float,
 	_,
 	__,
 	___,
 	____,
 ) -> float:
+
+	if size < 1.6:
+		size += hole_margin_small
+	else:
+		size += hole_margin_normal
 	return size
 
 
@@ -314,7 +417,7 @@ class Holder:
 		)
 
 		# size function
-		self.size_func = size_func if size_func is not None else size_none_increase
+		self.size_func = size_func if size_func is not None else size_default_increase
 
 		# primitive defaults
 		self.hole_size_flat = float(hole_size_flat)
@@ -353,7 +456,7 @@ class Holder:
 
 		# Ensure size_func is a callable
 		if self.size_func is None:
-			self.size_func = size_none_increase
+			self.size_func = size_default_increase
 
 	def __repr__(self) -> str:
 		return (
@@ -405,6 +508,30 @@ def size_increase_drill(
 	return hole_size_cir
 
 
+
+def get_start(
+	shape: HoleShape,
+	direction: str,
+	size,
+	xy_full_padding,
+	uppies=0,
+):
+	hole_size = 0
+	start = 0
+
+	hole_size = shape.GetXY(direction)
+
+
+	if direction == "x":
+		start_hor = (-(size) / 2) + (hole_size / 2) + xy_full_padding
+		start = start_hor
+
+	if direction == "y":
+		start_virt = (-(size-uppies) / 2) + (hole_size / 2) + xy_full_padding
+		start = start_virt
+
+	return start
+
 def get_move_xy(
 	shape: HoleShape,
 	direction: str,
@@ -415,27 +542,7 @@ def get_move_xy(
 ):
 	hole_size = 0
 
-	if shape.type_ == "circle":
-		diameter = shape.GetSize()
-		hole_size = diameter
-
-
-	if shape.type_ == "hexagon":
-		hole_size_flat, hole_size_pointy = shape.GetSize()
-		if direction == "x":
-			hole_size = hole_size_pointy
-
-		if direction == "y":
-			hole_size = hole_size_flat
-
-	if shape.type_ == "rect":
-		x, y = shape.GetSize()
-
-		if direction == "x":
-			hole_size = x
-
-		if direction == "y":
-			hole_size = y
+	hole_size = shape.GetXY(direction)
 
 	if hole_num > 1:
 		move = (((size_dw) - ((2 * xy_full_padding) + (uppies / 2)) - hole_size) / (hole_num - 1))
@@ -497,7 +604,6 @@ def make_hole(
 	z_face_flat,
 	total_loops: int,
 ):
-	shape = holder.hole_shape
 
 
 	wp = result.faces(f">Z[{z_face_flat}]").workplane().moveTo(
@@ -506,10 +612,8 @@ def make_hole(
 		), start_virt+(
 			i2*move_y
 		))
-	# show_object(wp)
-	# return wp
-	result = make_cut(
-		shape=shape,
+
+	result = holder.hole_shape.MakeCut(
 		workplane=wp,
 		holder=holder,
 		hole_depth=holder.hole_depth,
@@ -517,6 +621,19 @@ def make_hole(
 		i_y=i2,
 		total_loops=total_loops
 	)
+
+	# show_object(wp)
+	# return wp
+	# result = make_cut(
+	# 	shape=shape,
+	# 	workplane=wp,
+	# 	holder=holder,
+	# 	hole_depth=holder.hole_depth,
+	# 	i_x=i,
+	# 	i_y=i2,
+	# 	total_loops=total_loops
+	# )
+
 	return result
 
 
@@ -605,9 +722,22 @@ def make_holder(holder):
 	x_full_padding = gf_padding+x_padding
 	y_full_padding = gf_padding+y_padding
 
-	start_hor = (-(size_wid) / 2) + (hole_size_pointy/2) + x_full_padding
 
-	start_virt = (-(size_dep-y_uppies) / 2) + (hole_size_flat / 2) + y_full_padding
+	start_hor = get_start(
+		holder.hole_shape,
+		"x",
+		size_wid,
+		x_full_padding,
+	)
+
+	start_virt = get_start(
+		holder.hole_shape,
+		"y",
+		size_dep,
+		x_full_padding,
+		y_uppies,
+	)
+
 
 	result_pre_hold_edges = (
 		result
@@ -779,97 +909,128 @@ def main():
 		no_lip_upper_size=2.0,
 		no_lip_fillet_size=0.3
 	))
-	#
-	# holders.append(Holder(
-	# 	name="aa battery holder",
-	# 	version=SemVer(1, 0, 2),
-	# 	hole_shape=Circle(14.4),
-	# 	hole_shape_limit=Circle(14.4),
-	#
-	# 	hole_size_flat=14.4,
-	# 	hole_depth=15.0,
-	# 	fill_mm=18.0,
-	# 	gridfin_height=7.0,
-	# 	hole_num_x=4,
-	# 	gridfin_x=2,
-	# 	hole_num_y=2,
-	# 	gridfin_y=1,
-	# 	hole_chamfer_size=2.35,
-	# 	hole_circle=True,
-	# 	increase_copies=1,
-	# 	increase_amount=0,
-	# 	hole_max_size=10000,
-	# 	hole_min_size=0,
-	# 	increase_loop_after=20,
-	# 	edge_padding=0.0,
-	# 	x_padding=2.0,
-	# 	y_padding=1,
-	# 	y_uppies=0,
-	# 	no_lip=True,
-	# 	no_lip_upper_size=2.0,
-	# 	no_lip_fillet_size=0.3
-	# ))
-	#
-	# holders.append(Holder(
-	# 	name="aaa battery holder",
-	# 	version=SemVer(1, 0, 0),
-	# 	hole_shape=Circle(10.225),
-	# 	hole_shape_limit=Circle(10.225),
-	#
-	# 	hole_size_flat=10.225,
-	# 	hole_depth=15.0,
-	# 	fill_mm=18.0,
-	# 	gridfin_height=7.0,
-	# 	hole_num_x=4,
-	# 	gridfin_x=2,
-	# 	hole_num_y=2,
-	# 	gridfin_y=1,
-	# 	hole_chamfer_size=4.5,
-	# 	hole_circle=True,
-	# 	increase_copies=1,
-	# 	increase_amount=0,
-	# 	hole_max_size=10000,
-	# 	hole_min_size=0,
-	# 	increase_loop_after=20,
-	# 	edge_padding=0.0,
-	# 	x_padding=3.5,
-	# 	y_padding=3,
-	# 	y_uppies=0,
-	# 	no_lip=True,
-	# 	no_lip_upper_size=2.0,
-	# 	no_lip_fillet_size=0.3
-	# ))
-	#
-	# holders.append(Holder(
-	# 	name="chapstick holder",
-	# 	version=SemVer(1, 0, 1),
-	# 	hole_shape=Circle(15.60),
-	# 	hole_shape_limit=Circle(15.60),
-	#
-	# 	hole_size_flat=15.60,
-	# 	hole_depth=15.0,
-	# 	fill_mm=18.0,
-	# 	gridfin_height=7.0,
-	# 	hole_num_x=4,
-	# 	gridfin_x=2,
-	# 	hole_num_y=2,
-	# 	gridfin_y=1,
-	# 	hole_chamfer_size=1.7,
-	# 	hole_circle=True,
-	# 	increase_copies=1,
-	# 	increase_amount=0,
-	# 	hole_max_size=10000,
-	# 	hole_min_size=0,
-	# 	increase_loop_after=1,
-	# 	edge_padding=0.0,
-	# 	x_padding=0.5,
-	# 	y_padding=0.3,
-	# 	y_uppies=0,
-	# 	no_lip=True,
-	# 	no_lip_upper_size=2.0,
-	# 	no_lip_fillet_size=0.3
-	# ))
 
+	holders.append(Holder(
+		name="aa battery holder",
+		version=SemVer(1, 0, 2),
+		hole_shape=Circle(14.4),
+		hole_shape_max=Circle(14.4),
+		hole_shape_min=Circle(0.01),
+
+		hole_size_flat=14.4,
+		hole_depth=15.0,
+		fill_mm=18.0,
+		gridfin_height=7.0,
+		hole_num_x=4,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=1,
+		hole_chamfer_size=1.5,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=2.0,
+		y_padding=1,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
+	holders.append(Holder(
+		name="aaa battery holder",
+		version=SemVer(1, 0, 0),
+		hole_shape=Circle(10.225),
+		hole_shape_max=Circle(10.225),
+		hole_shape_min=Circle(0.01),
+
+		hole_size_flat=10.225,
+		hole_depth=15.0,
+		fill_mm=18.0,
+		gridfin_height=7.0,
+		hole_num_x=4,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=1,
+		hole_chamfer_size=4,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=3.5,
+		y_padding=3,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
+	holders.append(Holder(
+		name="chapstick holder",
+		version=SemVer(1, 0, 1),
+		hole_shape=Circle(15.60),
+		hole_shape_max=Circle(15.60),
+		hole_shape_min=Circle(0.01),
+
+		hole_size_flat=15.60,
+		hole_depth=15.0,
+		fill_mm=18.0,
+		gridfin_height=7.0,
+		hole_num_x=4,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=1,
+		hole_chamfer_size=1.5,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=1,
+		edge_padding=0.0,
+		x_padding=0.5,
+		y_padding=0.3,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
+
+	holders.append(Holder(
+		name="9v battery holder",
+		version=SemVer(1, 0, 0),
+		hole_shape=Rect(26, 17),
+		hole_shape_max=Rect(999, 999),
+		# hole_shape_min=Circle(0.01),
+		# size_func=size_increase_drill,
+
+		hole_depth=17.0,
+		fill_mm=18.0,
+		gridfin_height=7.0,
+		hole_num_x=5,
+		gridfin_x=4,
+		hole_num_y=2,
+		gridfin_y=2,
+		hole_chamfer_size=3,
+		increase_copies=1,
+		increase_amount=0.5,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=3.0,
+		y_padding=3.0,
+		y_uppies=12.0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
 
 	try:
 		script_dir = Path(__file__).resolve().parent
