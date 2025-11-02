@@ -1013,7 +1013,7 @@ def main():
 		# size_func=size_increase_drill,
 
 		hole_depth=17.0,
-		fill_mm=18.0,
+		fill_mm=20.0,
 		gridfin_height=7.0,
 		hole_num_x=5,
 		gridfin_x=4,
