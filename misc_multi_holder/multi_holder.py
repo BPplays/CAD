@@ -261,9 +261,12 @@ def size_none_increase(size: float, _, __) -> float:
 @dataclass
 class Holder:
 	name: str = ""
-	version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
-	hole_shape: HoleShape = field(default_factory=lambda: Rect(1, 1))
-	hole_shape_limit: HoleShape = field(default_factory=lambda: Rect(1, 1))
+	version: SemVer = None
+	hole_shape: HoleShape = None
+	hole_shape_limit: HoleShape = None
+	# version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
+	# hole_shape: HoleShape = field(default_factory=lambda: Rect(1, 1))
+	# hole_shape_limit: HoleShape = field(default_factory=lambda: Rect(1, 1))
 	size_func: Callable[[float, any, float], float] = field(
 		default_factory=lambda: size_none_increase
 	)
@@ -306,6 +309,26 @@ class Holder:
 	no_lip: bool = True
 	no_lip_upper_size: float = 2.0
 	no_lip_fillet_size: float = 0.3
+	def __post_init__(self) -> None:
+		# Ensure version is always a SemVer instance
+		if self.version is None:
+			self.version = SemVer(1, 0, 0)
+
+		# Ensure hole_shape and hole_shape_limit are always HoleShape instances
+		if self.hole_shape is None:
+			self.hole_shape = Rect(1, 1)
+		if self.hole_shape_limit is None:
+			self.hole_shape_limit = Rect(1, 1)
+
+		# Ensure size_func is a callable
+		if self.size_func is None:
+			self.size_func = size_none_increase
+
+	def __repr__(self) -> str:
+		return (
+			f"Holder(name={self.name!r}, version={self.version!r}, "
+			f"hole_shape={self.hole_shape!r}, hole_size_flat={self.hole_size_flat})"
+		)
 
 
 
