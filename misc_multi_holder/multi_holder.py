@@ -1,6 +1,8 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 from cadquery import exporters
 from pathlib import Path # noqa
+from typing import Dict, Union
 
 hole_margin_small = 0.6
 hole_margin_normal = 0.4
@@ -15,50 +17,8 @@ class SemVer:
 	def __repr__(self):
 		return f"{self.major}.{self.minor}.{self.patch}"
 
+Number = Union[int, float]
 
-@dataclass
-class Holder:
-	name: str = ""
-	version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
-
-	# Hole dimensions and related values
-	hole_size_flat: float = 0.5
-	# For a 20mm application: hole_depth = 6.5; for 50mm: hole_depth = 15 (using 15)
-	hole_depth: float = 15.0
-
-	# Fill value (for 20mm use 7, for 50mm use 18; using 18)
-	fill_mm: float = 18.0
-
-	# Grid fin parameters
-	gridfin_height: float = 7.0
-	hole_num_x: int = 5
-	gridfin_x: int = 2
-	hole_num_y: int = 4
-	gridfin_y: int = 2
-
-	# Chamfer size: for 20mm use 1.1; for 50mm use 2 (using 2)
-	hole_chamfer_size: float = 2.0
-
-	# Hole properties for circular holes
-	hole_circle: bool = True
-	increase_copies: int = 1
-	increase_amount: float = 0.5
-	hole_max_size: float = 10.0
-	hole_min_size: float = 0.5
-	increase_loop_after: int = 20
-
-	# Padding values
-	edge_padding: float = 0.0
-	x_padding: float = 6.0
-	y_padding: float = 6.0
-
-	# Y uppies
-	y_uppies: float = 12.0
-
-	# No lip options
-	no_lip: bool = True
-	no_lip_upper_size: float = 2.0
-	no_lip_fillet_size: float = 0.3
 
 
 doesnt_exist_script_dir = "script dir doesn't exist"
@@ -112,33 +72,144 @@ doesnt_exist_script_dir = "script dir doesn't exist"
 
 import cqgridfinity as cqg  # noqa
 import math  # noqa
+from typing import Dict, Union, Callable, Any, Optional
 if 'show_object' not in globals():
 	def show_object(*args, **kwargs):
 		pass
 # pylint: skip-file
 
-class Shape:
+class HoleShape:
+	# def __new__(cls, *args, **kwargs):
+	# 	# called before __init__; create instance and set per-instance empty dict
+	# 	self = super().__new__(cls)
+	# 	self.sizes: Dict[str, float] = {}  # initialized _pre-__init__
+	# 	return self
+
 	def __init__(
 		self,
-		type: str,
-		sizes: dict[str, float],
+		type_: str,
+		sizes: Optional[Dict[str, Number]]  = None,
 	):
-		self.type = type
+		self.type_ = type_
 		self.sizes = sizes
+		self.sizes: Dict[str, float] = {k: float(v) for k, v in (sizes or {}).items()}
 
-	def SetSize():
-		pass
 
-	def GetSize():
-		pass
+	def SetSize(self, *args, **kwargs) -> None:
+		raise NotImplementedError
 
-class Hexagon(Shape):
+	def GetSize(self):
+		raise NotImplementedError
+
+	# # helper to merge keys and produce new sizes dict
+	# def _apply_op(
+	# 	self,
+	# 	other: Union[Dict[str, Number], Number],
+	# 	op: str,
+	# ) -> Dict[str, float]:
+	# 	"""Return a new sizes dict after applying operation.
+	# 	op in {"add", "sub", "mul", "div"}.
+	# 	If other is a scalar apply to every key.
+	# 	If other is a dict: for add/sub missing keys -> 0; for mul/div missing keys -> 1.
+	# 	Keys present only in `other` are included in the result.
+	# 	"""
+	# 	if isinstance(other, (int, float)):
+	# 		# scalar path
+	# 		if op == "add":
+	# 			return {k: float(v + other) for k, v in self.sizes.items()}
+	# 		if op == "sub":
+	# 			return {k: float(v - other) for k, v in self.sizes.items()}
+	# 		if op == "mul":
+	# 			return {k: float(v * other) for k, v in self.sizes.items()}
+	# 		if op == "div":
+	# 			if other == 0:
+	# 				raise ValueError("Division by zero (scalar).")
+	# 			return {k: float(v / other) for k, v in self.sizes.items()}
+	# 		raise ValueError(f"Unknown op {op}")
+	#
+	# 	# other is a dict path
+	# 	other_dict = {k: float(v) for k, v in other.items()}
+	# 	# union of keys
+	# 	all_keys = set(self.sizes.keys()) | set(other_dict.keys())
+	# 	result: Dict[str, float] = {}
+	#
+	# 	for k in all_keys:
+	# 		a = float(self.sizes.get(k, 0.0))
+	# 		b = float(other_dict.get(k, 0.0))
+	#
+	# 		if op == "add":
+	# 			# missing other treated as 0 by using .get above
+	# 			result[k] = a + b
+	# 		elif op == "sub":
+	# 			# missing other treated as 0
+	# 			result[k] = a - b
+	# 		elif op == "mul":
+	# 			# missing other should be treated as 1 (so adjust b)
+	# 			b = other_dict.get(k, 1.0)
+	# 			result[k] = a * float(b)
+	# 		elif op == "div":
+	# 			b = other_dict.get(k, 1.0)
+	# 			if b == 0:
+	# 				raise ValueError(f"Division by zero for key '{k}'")
+	# 			# if a missing previously we used 0.0 -> 0 / b == 0
+	# 			result[k] = a / float(b)
+	# 		else:
+	# 			raise ValueError(f"Unknown op {op}")
+	#
+	# 	return result
+	#
+	# # public arithmetic methods
+	# def Add(
+	# 	self,
+	# 	other: Union[Dict[str, Number], Number],
+	# 	in_place: bool = True,
+	# ) -> "HoleShape":
+	# 	new_sizes = self._apply_op(other, "add")
+	# 	if in_place:
+	# 		self.sizes = new_sizes
+	# 		return self
+	# 	return HoleShape(self.type, new_sizes)
+	#
+	# def Subtract(
+	# 	self,
+	# 	other: Union[Dict[str, Number], Number],
+	# 	in_place: bool = True,
+	# ) -> "HoleShape":
+	# 	new_sizes = self._apply_op(other, "sub")
+	# 	if in_place:
+	# 		self.sizes = new_sizes
+	# 		return self
+	# 	return HoleShape(self.type, new_sizes)
+	#
+	# def Mult(
+	# 	self,
+	# 	other: Union[Dict[str, Number], Number],
+	# 	in_place: bool = True,
+	# ) -> "HoleShape":
+	# 	new_sizes = self._apply_op(other, "mul")
+	# 	if in_place:
+	# 		self.sizes = new_sizes
+	# 		return self
+	# 	return HoleShape(self.type, new_sizes)
+	#
+	# def Div(
+	# 	self,
+	# 	other: Union[Dict[str, Number], Number],
+	# 	in_place: bool = True,
+	# ) -> "HoleShape":
+	# 	new_sizes = self._apply_op(other, "div")
+	# 	if in_place:
+	# 		self.sizes = new_sizes
+	# 		return self
+	# 	return HoleShape(self.type, new_sizes)
+
+class Hexagon(HoleShape):
 	def __init__(
 		self,
 		flat_side_size: float,
 	):
-		self.type = "hexagon"
-		self.setSize(flat_side_size)
+		super().__init__(type_="hexagon")
+		self.SetSize(flat_side_size)
 
 	def SetSize(self, flat_side_size: float):
 		self.sizes["flat_side_size"] = flat_side_size
@@ -151,13 +222,13 @@ class Hexagon(Shape):
 		return flat_side_size, pointy_side_size
 
 
-class Circle(Shape):
+class Circle(HoleShape):
 	def __init__(
 		self,
 		diameter: float,
 	):
-		self.type = "circle"
-		self.setSize(diameter)
+		super().__init__(type_="circle")
+		self.SetSize(diameter)
 
 	def SetSize(self, diameter: float):
 		self.sizes["diameter"] = diameter
@@ -165,14 +236,14 @@ class Circle(Shape):
 	def GetSize(self) -> (float):
 		return self.sizes["diameter"]
 
-class Rect(Shape):
+class Rect(HoleShape):
 	def __init__(
 		self,
 		x: float,
 		y: float,
 	):
-		self.type = "circle"
-		self.setSize(x, y)
+		super().__init__(type_="rect")
+		self.SetSize(x, y)
 
 	def SetSize(self, x: float, y: float):
 		self.sizes["x"] = x
@@ -182,13 +253,119 @@ class Rect(Shape):
 		return self.sizes["x"], self.sizes["y"]
 
 
+
+def size_none_increase(size: float, _, __) -> float:
+	return size
+
+def size_increase_drill(size: float, holder: "Holder", total_loops: int) -> float:
+	hole_size_cir = 0
+	hole_size_cir_base = size
+
+	for _ in range(total_loops):
+		if total_loops % holder.increase_loop_after == 0:
+			hole_size_cir_base = (size)
+
+
+		if hole_size_cir_base > (holder.hole_max_size):
+			hole_size_cir = (holder.hole_max_size)
+		elif hole_size_cir_base < (holder.hole_min_size):
+			hole_size_cir = (holder.hole_min_size)
+		else:
+			hole_size_cir = hole_size_cir_base
+
+		if hole_size_cir < (1.6):
+			hole_size_cir += (hole_margin_small)
+		else:
+			hole_size_cir += (hole_margin_normal)
+
+		if total_loops % holder.increase_copies == 0:
+			hole_size_cir_base += (holder.increase_amount)
+
+	return hole_size_cir
+
+
+@dataclass
+class Holder:
+	name: str = ""
+	version: SemVer = field(default_factory=lambda: SemVer(1, 0, 0))
+	hole_shape: HoleShape = field(default_factory=lambda: Rect(1, 1))
+	hole_shape_limit: HoleShape = field(default_factory=lambda: Rect(1, 1))
+	size_func: Callable[[float, any, float], float] = field(
+		default_factory=lambda: size_none_increase
+	)
+
+	# Hole dimensions and related values
+	hole_size_flat: float = 0.5
+	# For a 20mm application: hole_depth = 6.5; for 50mm: hole_depth = 15 (using 15)
+	hole_depth: float = 15.0
+
+	# Fill value (for 20mm use 7, for 50mm use 18; using 18)
+	fill_mm: float = 18.0
+
+	# Grid fin parameters
+	gridfin_height: float = 7.0
+	hole_num_x: int = 5
+	gridfin_x: int = 2
+	hole_num_y: int = 4
+	gridfin_y: int = 2
+
+	# Chamfer size: for 20mm use 1.1; for 50mm use 2 (using 2)
+	hole_chamfer_size: float = 2.0
+
+	# Hole properties for circular holes
+	hole_circle: bool = True
+	increase_copies: int = 1
+	increase_amount: float = 0.5
+	hole_max_size: float = 10.0
+	hole_min_size: float = 0.5
+	increase_loop_after: int = 20
+
+	# Padding values
+	edge_padding: float = 0.0
+	x_padding: float = 6.0
+	y_padding: float = 6.0
+
+	# Y uppies
+	y_uppies: float = 12.0
+
+	# No lip options
+	no_lip: bool = True
+	no_lip_upper_size: float = 2.0
+	no_lip_fillet_size: float = 0.3
+
+
 def get_move_xy(
+	shape: HoleShape,
+	direction: str,
 	size_dw,
 	xy_full_padding,
-	hole_size,
 	hole_num,
 	uppies=0,
 ):
+	hole_size = 0
+
+	if shape.type_ == "circle":
+		diameter = shape.GetSize()
+		hole_size = diameter
+
+
+	if shape.type_ == "hexagon":
+		hole_size_flat, hole_size_pointy = shape.GetSize()
+		if direction == "x":
+			hole_size = hole_size_pointy
+
+		if direction == "y":
+			hole_size = hole_size_flat
+
+	if shape.type_ == "rect":
+		x, y = shape.GetSize()
+
+		if direction == "x":
+			hole_size = x
+
+		if direction == "y":
+			hole_size = y
+
 	if hole_num > 1:
 		move = (((size_dw) - ((2 * xy_full_padding) + (uppies / 2)) - hole_size) / (hole_num - 1))
 	else:
@@ -196,6 +373,74 @@ def get_move_xy(
 
 	return move
 
+
+def make_cut(
+	shape: HoleShape,
+	workplane,
+	holder: Holder,
+	hole_depth: float,
+	total_loops: int,
+):
+
+	if shape.type_ == "circle":
+		diameter = shape.GetSize()
+		result = workplane.circle(
+			holder.size_func(diameter / 2, holder, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+
+	if shape.type_ == "hexagon":
+		hole_size_flat, hole_size_pointy = shape.GetSize()
+		result = workplane.polygon(
+			6,
+			holder.size_func(hole_size_pointy, holder, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+
+	if shape.type_ == "rect":
+		x, y = shape.GetSize()
+		result = workplane.rect(
+			holder.size_func(x, holder, total_loops),
+			holder.size_func(y, holder, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+
+	return result
+
+
+
+def make_hole(
+	holder: Holder,
+	result,
+	i: int,
+	i2: int,
+	start_hor,
+	start_virt,
+	move_x: float,
+	move_y: float,
+	z_face_flat,
+	total_loops,
+):
+	shape = holder.hole_shape
+
+
+	wp = result.faces(f">Z[{z_face_flat}]").workplane().moveTo(
+		(
+			start_hor+(i*move_x)
+		), start_virt+(
+			i2*move_y
+		))
+	result = make_cut(
+		shape=shape,
+		workplane=wp,
+		holder=holder,
+		hole_depth=holder.hole_depth,
+		total_loops=total_loops
+	)
+	return result
 
 
 def make_holder(holder):
@@ -296,71 +541,40 @@ def make_holder(holder):
 
 
 
-	move_x = get_move_xy(size_wid, x_full_padding, hole_size_pointy, hole_num_x)
-	move_y = get_move_xy(size_dep, y_full_padding, hole_size_flat, hole_num_y, y_uppies)
+	move_x = get_move_xy(
+		holder.hole_shape,
+		"x",
+		size_wid,
+		x_full_padding,
+		hole_num_x
+	)
+	move_y = get_move_xy(
+		holder.hole_shape,
+		"y",
+		size_dep,
+		y_full_padding,
+		hole_num_y,
+		y_uppies
+	)
 
 
 	# hole_size_cir = hole_size_flat
 	total_loops = 0
 
-	hole_size_cir_base = (hole_size_flat / 2)
 	for i2 in range(hole_num_y):
 		for i in range(hole_num_x):
-			if not hole_circle:
-				result = result.faces(f">Z[{z_face_flat}]").workplane().moveTo(
-					(
-						start_hor+(i*move_x)
-					), start_virt+(
-						i2*move_y
-					)).polygon(
-						6,
-						hole_size_pointy
-					).cutBlind(
-						-(hole_depth)
-					)
-
-			if hole_circle:
-				hole_size_pointy = hole_size_flat
-
-				move_x = get_move_xy(size_wid, x_full_padding, hole_size_pointy, hole_num_x)
-				move_y = get_move_xy(size_dep, y_full_padding, hole_size_flat, hole_num_y, y_uppies)
-
-				# hole_size = (hole_size_flat + (increase_amount * (math.floor((i + i2) / 2) % increase_loop_after)))  # noqa
-				# hole_size = (hole_size_flat + (increase_amount * ((math.floor(((i+1) * (i2+1)) / increase_copies) % increase_loop_after)+1)))  # noqa
-
-
-
-				if total_loops % increase_loop_after == 0:
-					hole_size_cir_base = (hole_size_flat / 2)
-
-
-				print(hole_size_cir_base)
-
-				if hole_size_cir_base > (hole_max_size / 2):
-					hole_size_cir = (hole_max_size / 2)
-				elif hole_size_cir_base < (hole_min_size / 2):
-					hole_size_cir = (hole_min_size / 2)
-				else:
-					hole_size_cir = hole_size_cir_base
-
-				if hole_size_cir < (1.6 / 2):
-					hole_size_cir += (hole_margin_small / 2)
-				else:
-					hole_size_cir += (hole_margin_normal / 2)
-
-				result = result.faces(f">Z[{z_face_flat}]").workplane().moveTo(
-					(
-						start_hor+(i*move_x)
-					), start_virt+(
-						i2*move_y
-					)).circle(
-						hole_size_cir
-					).cutBlind(
-						-(hole_depth)
-					)
-
-				if total_loops % increase_copies == 0:
-					hole_size_cir_base += (increase_amount / 2)
+			result = make_hole(
+				holder,
+				result,
+				i,
+				i2,
+				start_hor,
+				start_virt,
+				move_x,
+				move_y,
+				z_face_flat,
+				total_loops,
+			)
 
 			total_loops += 1
 
@@ -455,12 +669,16 @@ def loop_output(out_dir, holders):
 			)
 
 
+
 def main():
 	holders = []
 
 	holders.append(Holder(
 		name="drill bit holder",
 		version=SemVer(1, 0, 0),
+		hole_shape=Circle(0.5),
+		hole_shape_limit=Circle(10.0),
+		size_func=size_increase_drill,
 
 		hole_size_flat=0.5,
 		hole_depth=15.0,
@@ -489,6 +707,8 @@ def main():
 	holders.append(Holder(
 		name="aa battery holder",
 		version=SemVer(1, 0, 2),
+		hole_shape=Circle(14.4),
+		hole_shape_limit=Circle(14.4),
 
 		hole_size_flat=14.4,
 		hole_depth=15.0,
@@ -517,6 +737,8 @@ def main():
 	holders.append(Holder(
 		name="aaa battery holder",
 		version=SemVer(1, 0, 0),
+		hole_shape=Circle(10.225),
+		hole_shape_limit=Circle(10.225),
 
 		hole_size_flat=10.225,
 		hole_depth=15.0,
@@ -545,6 +767,8 @@ def main():
 	holders.append(Holder(
 		name="chapstick holder",
 		version=SemVer(1, 0, 1),
+		hole_shape=Circle(15.60),
+		hole_shape_limit=Circle(15.60),
 
 		hole_size_flat=15.60,
 		hole_depth=15.0,
