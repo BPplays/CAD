@@ -88,7 +88,7 @@ class HoleShape:
 	def __init__(
 		self,
 		type_: str,
-		sizes: Optional[Dict[str, Number]]  = None,
+		sizes: Optional[Dict[str, float]] = None,
 	):
 		self.type_ = type_
 		self.sizes = sizes
@@ -257,32 +257,6 @@ class Rect(HoleShape):
 def size_none_increase(size: float, _, __) -> float:
 	return size
 
-def size_increase_drill(size: float, holder: "Holder", total_loops: int) -> float:
-	hole_size_cir = 0
-	hole_size_cir_base = size
-
-	for _ in range(total_loops):
-		if total_loops % holder.increase_loop_after == 0:
-			hole_size_cir_base = (size)
-
-
-		if hole_size_cir_base > (holder.hole_max_size):
-			hole_size_cir = (holder.hole_max_size)
-		elif hole_size_cir_base < (holder.hole_min_size):
-			hole_size_cir = (holder.hole_min_size)
-		else:
-			hole_size_cir = hole_size_cir_base
-
-		if hole_size_cir < (1.6):
-			hole_size_cir += (hole_margin_small)
-		else:
-			hole_size_cir += (hole_margin_normal)
-
-		if total_loops % holder.increase_copies == 0:
-			hole_size_cir_base += (holder.increase_amount)
-
-	return hole_size_cir
-
 
 @dataclass
 class Holder:
@@ -332,6 +306,34 @@ class Holder:
 	no_lip: bool = True
 	no_lip_upper_size: float = 2.0
 	no_lip_fillet_size: float = 0.3
+
+
+
+def size_increase_drill(size: float, holder: "Holder", total_loops: int) -> float:
+	hole_size_cir = 0
+	hole_size_cir_base = size
+
+	for _ in range(total_loops):
+		if total_loops % holder.increase_loop_after == 0:
+			hole_size_cir_base = (size)
+
+
+		if hole_size_cir_base > (holder.hole_max_size):
+			hole_size_cir = (holder.hole_max_size)
+		elif hole_size_cir_base < (holder.hole_min_size):
+			hole_size_cir = (holder.hole_min_size)
+		else:
+			hole_size_cir = hole_size_cir_base
+
+		if hole_size_cir < (1.6):
+			hole_size_cir += (hole_margin_small)
+		else:
+			hole_size_cir += (hole_margin_normal)
+
+		if total_loops % holder.increase_copies == 0:
+			hole_size_cir_base += (holder.increase_amount)
+
+	return hole_size_cir
 
 
 def get_move_xy(
