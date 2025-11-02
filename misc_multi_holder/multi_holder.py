@@ -925,7 +925,7 @@ def main():
 		gridfin_x=2,
 		hole_num_y=2,
 		gridfin_y=1,
-		hole_chamfer_size=1.5,
+		hole_chamfer_size=2.225,
 		hole_circle=True,
 		increase_copies=1,
 		increase_amount=0,
