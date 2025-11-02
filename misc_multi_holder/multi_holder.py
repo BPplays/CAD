@@ -1006,7 +1006,7 @@ def main():
 
 	holders.append(Holder(
 		name="9v battery holder",
-		version=SemVer(1, 0, 0),
+		version=SemVer(1, 0, 1),
 		hole_shape=Rect(26, 17),
 		hole_shape_max=Rect(999, 999),
 		# hole_shape_min=Circle(0.01),
@@ -1025,8 +1025,8 @@ def main():
 		increase_loop_after=20,
 		edge_padding=0.0,
 		x_padding=3.0,
-		y_padding=3.0,
-		y_uppies=12.0,
+		y_padding=4.5,
+		y_uppies=13.0,
 		no_lip=True,
 		no_lip_upper_size=2.0,
 		no_lip_fillet_size=0.3
