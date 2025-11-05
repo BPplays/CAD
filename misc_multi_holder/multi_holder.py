@@ -514,10 +514,15 @@ def get_start(
 	direction: str,
 	size,
 	xy_full_padding,
+	num: int,
 	uppies=0,
 ):
 	hole_size = 0
 	start = 0
+
+	if num <= 1:
+		return start
+
 
 	hole_size = shape.GetXY(direction)
 
@@ -728,6 +733,7 @@ def make_holder(holder):
 		"x",
 		size_wid,
 		x_full_padding,
+		holder.hole_num_x,
 	)
 
 	start_virt = get_start(
@@ -735,6 +741,7 @@ def make_holder(holder):
 		"y",
 		size_dep,
 		y_full_padding,
+		holder.hole_num_y,
 		y_uppies,
 	)
 
@@ -859,21 +866,22 @@ def make_holder(holder):
 	# gf_box_3x2x5_holes_scoops_labels.stl
 
 
-def loop_output(out_dir, holders):
+def loop_output(out_dir, holders, filter = ""):
 
 	for holder in holders:
 		# if holder.name != "aaa battery holder":
 		# 	continue
-		result, holder = make_holder(holder=holder)
-		show_object(result, name=f"{holder.name} v{str(holder.version)}")
+		if filter == holder.name or filter == "":
+			result, holder = make_holder(holder=holder)
+			show_object(result, name=f"{holder.name} v{str(holder.version)}")
 
-		if __name__ == "__main__" and (out_dir != doesnt_exist_script_dir):
-			exporters.export(
-				result,
-				str(out_dir.joinpath(
-					f"{holder.name} v{str(holder.version)}.step"
-				))
-			)
+			if __name__ == "__main__" and (out_dir != doesnt_exist_script_dir):
+				exporters.export(
+					result,
+					str(out_dir.joinpath(
+						f"{holder.name} v{str(holder.version)}.step"
+					))
+				)
 
 
 
@@ -914,7 +922,7 @@ def main():
 		name="aa battery holder",
 		version=SemVer(1, 0, 2),
 		hole_shape=Circle(14.4),
-		hole_shape_max=Circle(14.4),
+		hole_shape_max=Circle(99999999999),
 		hole_shape_min=Circle(0.01),
 
 		hole_size_flat=14.4,
@@ -942,13 +950,12 @@ def main():
 	))
 
 	holders.append(Holder(
-		name="aaa battery holder",
-		version=SemVer(1, 0, 0),
-		hole_shape=Circle(10.225),
-		hole_shape_max=Circle(10.225),
+		name="8 aaa battery holder",
+		version=SemVer(1, 0, 1),
+		hole_shape=Circle(10.35),
+		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
-		hole_size_flat=10.225,
 		hole_depth=15.0,
 		fill_mm=18.0,
 		gridfin_height=7.0,
@@ -973,10 +980,40 @@ def main():
 	))
 
 	holders.append(Holder(
+		name="10 aaa battery holder",
+		version=SemVer(1, 0, 1),
+		hole_shape=Circle(10.35),
+		hole_shape_max=Circle(9999999),
+		hole_shape_min=Circle(0.01),
+
+		hole_depth=15.0,
+		fill_mm=18.0,
+		gridfin_height=7.0,
+		hole_num_x=5,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=1,
+		hole_chamfer_size=2.5,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=2.2,
+		y_padding=3.1,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
+	holders.append(Holder(
 		name="chapstick holder",
 		version=SemVer(1, 0, 1),
 		hole_shape=Circle(15.60),
-		hole_shape_max=Circle(15.60),
+		hole_shape_max=Circle(99999999),
 		hole_shape_min=Circle(0.01),
 
 		hole_size_flat=15.60,
@@ -1061,6 +1098,36 @@ def main():
 		no_lip_fillet_size=0.3
 	))
 
+	holders.append(Holder(
+		name="d battery holder",
+		version=SemVer(1, 0, 0),
+		hole_shape=Circle(32.36),
+		hole_shape_max=Circle(9999999),
+		hole_shape_min=Circle(0.01),
+
+		hole_depth=17.0,
+		fill_mm=20.0,
+		gridfin_height=7.0,
+		hole_num_x=2,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=2,
+		hole_chamfer_size=3.98,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=2.5,
+		y_padding=2.5,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
 	try:
 		script_dir = Path(__file__).resolve().parent
 		out_dir = script_dir.joinpath("out")
@@ -1074,7 +1141,7 @@ def main():
 		# script_dir = Path.cwd()
 
 
-	loop_output(out_dir, holders)
+	loop_output(out_dir, holders, "")
 
 
 
