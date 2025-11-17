@@ -1278,13 +1278,12 @@ def main():
 
 		hole_depth=15.0,
 		fill_mm=bosch_holders[0].fill_mm,
-		gridfin_height=7.0,
+		gridfin_height=bosch_holders[0].gridfin_height,
 		hole_num_x=2,
-		gridfin_x=2,
+		gridfin_x=bosch_holders[0].gridfin_x,
 		hole_num_y=2,
-		gridfin_y=1,
+		gridfin_y=bosch_holders[0].gridfin_y,
 		hole_chamfer_size=2.0,
-		hole_circle=True,
 		increase_copies=1,
 		increase_amount=0,
 		hole_max_size=10000,
@@ -1294,9 +1293,9 @@ def main():
 		x_padding=2.0,
 		y_padding=3.1,
 		y_uppies=0,
-		no_lip=True,
-		no_lip_upper_size=2.0,
-		no_lip_fillet_size=0.3
+		no_lip=bosch_holders[0].no_lip,
+		no_lip_upper_size=bosch_holders[0].no_lip_upper_size,
+		no_lip_fillet_size=bosch_holders[0].no_lip_fillet_size
 	))
 
 	try:
