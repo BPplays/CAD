@@ -350,55 +350,40 @@ class Rect(HoleShape):
 		)
 		return result
 
-class Bosch_rect_also_aaa(HoleShape):
+class RectDouble(HoleShape):
 	def __init__(
 		self,
 		x: float,
 		y: float,
-		aaa_size: float,
-	):
-		super().__init__(type_="rect")
-		self.SetSize(x, y, aaa_size)
 
-	def SetSize(self, x: float, y: float, aaa_size: float):
+		x2: float,
+		y2: float,
+	):
+		super().__init__(type_="rect_double")
+		self.SetSize(x, y, x2, y2)
+
+	def SetSize(self, x: float, y: float, x2: float, y2: float):
 		self.sizes["x"] = x
 		self.sizes["y"] = y
-		self.sizes["aaa"] = aaa_size
+
+		self.sizes["x2"] = x2
+		self.sizes["y2"] = y2
 
 	def GetSize(self) -> (float, float):
-		return self.sizes["x"], self.sizes["y"], self.sizes["aaa"]
+		return self.sizes["x"], self.sizes["y"], self.sizes["x2"], self.sizes["y2"]
 
 	def GetXY(self, direction: str):
 		hole_size = 0
 
-		x, y, _ = self.GetSize()
+		x, y, x2, y2 = self.GetSize()
 
 		if direction == "x":
-			hole_size = x
+			hole_size = max(x, x2)
 
 		if direction == "y":
-			hole_size = y
+			hole_size = max(y, y2)
 
 		return hole_size
-
-	# def MakeCut(
-	# 	self,
-	# 	workplane,
-	# 	holder: Holder,
-	# 	hole_depth: float,
-	# 	i_x: int,
-	# 	i_y: int,
-	# 	total_loops: int,
-	# ):
-	# 	x, y, aaa = self.GetSize()
-	# 	aaaShape = Circle(aaa)
-	# 	result = workplane.rect(
-	# 		holder.size_func(x, holder, i_x, i_y, total_loops),
-	# 		holder.size_func(y, holder, i_x, i_y, total_loops),
-	# 	).cutBlind(
-	# 		-(hole_depth)
-	# 	)
-	# 	return result
 
 	def MakeCut(
 		self,
@@ -409,29 +394,15 @@ class Bosch_rect_also_aaa(HoleShape):
 		i_y: int,
 		total_loops: int,
 	):
-		x, y, aaa = self.GetSize()
+		x, y, x2, y2 = self.GetSize()
+		result = workplane.rect(
+			holder.size_func(x, holder, i_x, i_y, total_loops),
+			holder.size_func(y, holder, i_x, i_y, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+		return result
 
-		# get chamfer size if present, otherwise 0
-		chamfer = getattr(holder, "hole_chamfer_size", 0)
-
-		# compute sizes as used normally by other shapes
-		rect_w = holder.size_func(x, holder, i_x, i_y, total_loops)
-		rect_h = holder.size_func(y, holder, i_x, i_y, total_loops)
-
-		# shrink rectangle to avoid circle chamfers (clamp to small positive)
-		rect_w = max(0.0001, rect_w - 2.0 * chamfer)
-		rect_h = max(0.0001, rect_h - 2.0 * chamfer)
-
-		# Only create the rectangular cut once — here: on the first loop (0,0).
-		# Change this condition if you want a different "once" trigger.
-		if i_x == 0 and i_y == 0:
-			workplane = workplane.rect(rect_w, rect_h).cutBlind(-hole_depth)
-
-		# Always make the circle cut for this iteration
-		radius = holder.size_func(aaa, holder, i_x, i_y, total_loops) / 2.0
-		workplane = workplane.circle(radius).cutBlind(-15)
-
-		return workplane
 
 
 def size_default_increase(
