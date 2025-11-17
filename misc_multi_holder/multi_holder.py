@@ -1271,13 +1271,13 @@ def main():
 
 	bosch_holders.append(Holder(
 		name="bosch aaa battery holder",
-		version=SemVer(1, 0, 1),
+		version=bosch_holders[0].version,
 		hole_shape=Circle(10.35),
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
 		hole_depth=15.0,
-		fill_mm=35,
+		fill_mm=bosch_holders[0].fill_mm,
 		gridfin_height=7.0,
 		hole_num_x=2,
 		gridfin_x=2,
