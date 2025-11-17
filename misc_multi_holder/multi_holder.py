@@ -977,21 +977,30 @@ def and_holders(holders):
 def loop_output(out_dir, holders, models, filter = ""):
 
 	for holder in holders:
-		if filter == holder.name or filter == "":
-			result, holder = make_holder(holder=holder)
-			models.append(Holder_Model(holder, result))
+		if not (filter == holder.name or filter == ""):
+			continue
+
+		result, holder = make_holder(holder=holder)
+		models.append(Holder_Model(holder, result))
 
 	for model in models:
-		if filter == model.holder.name or filter == "":
-			show_object(model.model, name=f"{model.holder.name} v{str(model.holder.version)}")
+		if not (filter == model.holder.name or filter == ""):
+			continue
 
-			if __name__ == "__main__" and (out_dir != doesnt_exist_script_dir):
-				exporters.export(
-					model.model,
-					str(out_dir.joinpath(
-						f"{model.holder.name} v{str(model.holder.version)}.step"
-					))
-				)
+		show_object(
+			model.model,
+			name=f"{model.holder.name} v{str(model.holder.version)}"
+		)
+
+		if not (__name__ == "__main__" and (out_dir != doesnt_exist_script_dir)):
+			continue
+
+		exporters.export(
+			model.model,
+			str(out_dir.joinpath(
+				f"{model.holder.name} v{str(model.holder.version)}.step"
+			))
+		)
 
 
 
