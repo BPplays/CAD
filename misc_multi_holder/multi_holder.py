@@ -350,6 +350,56 @@ class Rect(HoleShape):
 		)
 		return result
 
+class Bosch_rect_also_aaa(HoleShape):
+	def __init__(
+		self,
+		x: float,
+		y: float,
+		aaa_size: float,
+	):
+		super().__init__(type_="rect")
+		self.SetSize(x, y, aaa_size)
+
+	def SetSize(self, x: float, y: float, aaa_size: float):
+		self.sizes["x"] = x
+		self.sizes["y"] = y
+		self.sizes["aaa"] = aaa_size
+
+	def GetSize(self) -> (float, float):
+		return self.sizes["x"], self.sizes["y"], self.sizes["aaa"]
+
+	def GetXY(self, direction: str):
+		hole_size = 0
+
+		x, y, _ = self.GetSize()
+
+		if direction == "x":
+			hole_size = x
+
+		if direction == "y":
+			hole_size = y
+
+		return hole_size
+
+	def MakeCut(
+		self,
+		workplane,
+		holder: Holder,
+		hole_depth: float,
+		i_x: int,
+		i_y: int,
+		total_loops: int,
+	):
+		x, y, aaa = self.GetSize()
+		aaaShape = Circle(aaa)
+		result = workplane.rect(
+			holder.size_func(x, holder, i_x, i_y, total_loops),
+			holder.size_func(y, holder, i_x, i_y, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+		return result
+
 
 
 def size_default_increase(
@@ -1128,6 +1178,35 @@ def main():
 		no_lip_fillet_size=0.3
 	))
 
+	holders.append(Holder(
+		name="bosch glm165-40",
+		version=SemVer(1, 0, 0),
+		hole_shape=Bosch_rect_also_aaa(41.25, max(19.27, 19.50), 10.35),
+		hole_shape_max=Circle(9999999),
+		hole_shape_min=Circle(0.01),
+
+		hole_depth=30,
+		fill_mm=35,
+		gridfin_height=7.0,
+		hole_num_x=1,
+		gridfin_x=2,
+		hole_num_y=1,
+		gridfin_y=1,
+		hole_chamfer_size=5,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=2.5,
+		y_padding=2.5,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
 	try:
 		script_dir = Path(__file__).resolve().parent
 		out_dir = script_dir.joinpath("out")
@@ -1141,7 +1220,7 @@ def main():
 		# script_dir = Path.cwd()
 
 
-	loop_output(out_dir, holders, "")
+	loop_output(out_dir, holders, "bosch glm165-40")
 
 
 
