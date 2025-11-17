@@ -381,6 +381,25 @@ class Bosch_rect_also_aaa(HoleShape):
 
 		return hole_size
 
+	# def MakeCut(
+	# 	self,
+	# 	workplane,
+	# 	holder: Holder,
+	# 	hole_depth: float,
+	# 	i_x: int,
+	# 	i_y: int,
+	# 	total_loops: int,
+	# ):
+	# 	x, y, aaa = self.GetSize()
+	# 	aaaShape = Circle(aaa)
+	# 	result = workplane.rect(
+	# 		holder.size_func(x, holder, i_x, i_y, total_loops),
+	# 		holder.size_func(y, holder, i_x, i_y, total_loops),
+	# 	).cutBlind(
+	# 		-(hole_depth)
+	# 	)
+	# 	return result
+
 	def MakeCut(
 		self,
 		workplane,
@@ -391,15 +410,28 @@ class Bosch_rect_also_aaa(HoleShape):
 		total_loops: int,
 	):
 		x, y, aaa = self.GetSize()
-		aaaShape = Circle(aaa)
-		result = workplane.rect(
-			holder.size_func(x, holder, i_x, i_y, total_loops),
-			holder.size_func(y, holder, i_x, i_y, total_loops),
-		).cutBlind(
-			-(hole_depth)
-		)
-		return result
 
+		# get chamfer size if present, otherwise 0
+		chamfer = getattr(holder, "hole_chamfer_size", 0)
+
+		# compute sizes as used normally by other shapes
+		rect_w = holder.size_func(x, holder, i_x, i_y, total_loops)
+		rect_h = holder.size_func(y, holder, i_x, i_y, total_loops)
+
+		# shrink rectangle to avoid circle chamfers (clamp to small positive)
+		rect_w = max(0.0001, rect_w - 2.0 * chamfer)
+		rect_h = max(0.0001, rect_h - 2.0 * chamfer)
+
+		# Only create the rectangular cut once — here: on the first loop (0,0).
+		# Change this condition if you want a different "once" trigger.
+		if i_x == 0 and i_y == 0:
+			workplane = workplane.rect(rect_w, rect_h).cutBlind(-hole_depth)
+
+		# Always make the circle cut for this iteration
+		radius = holder.size_func(aaa, holder, i_x, i_y, total_loops) / 2.0
+		workplane = workplane.circle(radius).cutBlind(-15)
+
+		return workplane
 
 
 def size_default_increase(
@@ -416,6 +448,15 @@ def size_default_increase(
 		size += hole_margin_normal
 	return size
 
+
+class Holder_Model:
+	def __init__(
+		self,
+		holder: Holder,
+		model: Any,
+	) -> None:
+		self.holder = holder
+		self.model = model
 
 # @dataclass
 class Holder:
@@ -916,20 +957,39 @@ def make_holder(holder):
 	# gf_box_3x2x5_holes_scoops_labels.stl
 
 
-def loop_output(out_dir, holders, filter = ""):
+
+def and_holders(holders):
+	main_result = None
+	main_holder = None
 
 	for holder in holders:
-		# if holder.name != "aaa battery holder":
-		# 	continue
+		result, _ = make_holder(holder=holder)
+		if main_result is None:
+			main_result = result
+			main_holder = holder
+		else:
+			# union returns a new object — assign it back
+			main_result = main_result.intersect(result)
+
+	return Holder_Model(main_holder, main_result)
+
+
+def loop_output(out_dir, holders, models, filter = ""):
+
+	for holder in holders:
 		if filter == holder.name or filter == "":
 			result, holder = make_holder(holder=holder)
-			show_object(result, name=f"{holder.name} v{str(holder.version)}")
+			models.append(Holder_Model(holder, result))
+
+	for model in models:
+		if filter == model.holder.name or filter == "":
+			show_object(model.model, name=f"{model.holder.name} v{str(model.holder.version)}")
 
 			if __name__ == "__main__" and (out_dir != doesnt_exist_script_dir):
 				exporters.export(
-					result,
+					model.model,
 					str(out_dir.joinpath(
-						f"{holder.name} v{str(holder.version)}.step"
+						f"{model.holder.name} v{str(model.holder.version)}.step"
 					))
 				)
 
@@ -1178,10 +1238,12 @@ def main():
 		no_lip_fillet_size=0.3
 	))
 
-	holders.append(Holder(
+
+	bosch_holders = []
+	bosch_holders.append(Holder(
 		name="bosch glm165-40",
 		version=SemVer(1, 0, 0),
-		hole_shape=Bosch_rect_also_aaa(41.25, max(19.27, 19.50), 10.35),
+		hole_shape=Rect(41.25, max(19.27, 19.50)),
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
@@ -1207,6 +1269,36 @@ def main():
 		no_lip_fillet_size=0.3
 	))
 
+	bosch_holders.append(Holder(
+		name="bosch aaa battery holder",
+		version=SemVer(1, 0, 1),
+		hole_shape=Circle(10.35),
+		hole_shape_max=Circle(9999999),
+		hole_shape_min=Circle(0.01),
+
+		hole_depth=15.0,
+		fill_mm=35,
+		gridfin_height=7.0,
+		hole_num_x=2,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=1,
+		hole_chamfer_size=2.0,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=2.0,
+		y_padding=3.1,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
 	try:
 		script_dir = Path(__file__).resolve().parent
 		out_dir = script_dir.joinpath("out")
@@ -1220,7 +1312,10 @@ def main():
 		# script_dir = Path.cwd()
 
 
-	loop_output(out_dir, holders, "bosch glm165-40")
+	holder_models = []
+	holder_models.append(and_holders(bosch_holders))
+
+	loop_output(out_dir, holders, holder_models, "bosch glm165-40")
 
 
 
