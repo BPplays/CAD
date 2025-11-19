@@ -78,6 +78,20 @@ if 'show_object' not in globals():
 		pass
 # pylint: skip-file
 
+def to_range(a, range_start, range_end):
+    if range_end == range_start:
+        return 0
+    t = (a - range_start) / (range_end - range_start)
+    return max(0, min(1, t))
+
+def interp(a, b, t):
+    t = max(min(t, 1), 0)
+
+    a_mix = a * (1 - t)
+    b_mix = b * t
+
+    return a_mix + b_mix
+
 class HoleShape:
 	# def __new__(cls, *args, **kwargs):
 	# 	# called before __init__; create instance and set per-instance empty dict
@@ -412,12 +426,10 @@ def size_default_increase(
 	___,
 	____,
 ) -> float:
+	smallness = to_range(size, 2.25, 1.6)
+	margin = interp(hole_margin_normal, hole_margin_small, smallness)
 
-	if size < 1.6:
-		size += hole_margin_small
-	else:
-		size += hole_margin_normal
-	return size
+	return size + margin
 
 
 class Holder_Model:
