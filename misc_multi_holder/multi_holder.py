@@ -1314,8 +1314,8 @@ def main():
 
 	holders.append(Holder(
 		name="vessel tx76u",
-		version=SemVer(1, 0, 0),
-		hole_shape=RectDouble(17, 7.5, 5.3, 7.5 + (2 * 2)),
+		version=SemVer(1, 0, 1),
+		hole_shape=RectDouble(17, 7.5, 5.7, 7.5 + (2 * 2)),
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
