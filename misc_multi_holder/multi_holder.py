@@ -415,6 +415,16 @@ class RectDouble(HoleShape):
 		).cutBlind(
 			-(hole_depth)
 		)
+
+		result2 = workplane.rect(
+			holder.size_func(x2, holder, i_x, i_y, total_loops),
+			holder.size_func(y2, holder, i_x, i_y, total_loops),
+		).cutBlind(
+			-(hole_depth)
+		)
+
+		result = and_models([result, result2])
+
 		return result
 
 
@@ -941,6 +951,18 @@ def make_holder(holder):
 
 
 
+
+def and_models(models):
+	main_result = None
+
+	for model in models:
+		if main_result is None:
+			main_result = model
+		else:
+			main_result = main_result.intersect(model)
+
+	return main_result
+
 def and_holders(holders):
 	main_result = None
 	main_holder = None
@@ -951,7 +973,6 @@ def and_holders(holders):
 			main_result = result
 			main_holder = holder
 		else:
-			# union returns a new object — assign it back
 			main_result = main_result.intersect(result)
 
 	return Holder_Model(main_holder, main_result)
@@ -1290,6 +1311,37 @@ def main():
 		no_lip_fillet_size=bosch_holders[0].no_lip_fillet_size
 	))
 
+
+	holders.append(Holder(
+		name="vessel tx76u",
+		version=SemVer(1, 0, 0),
+		hole_shape=RectDouble(32.36, 1, 4, 7),
+		hole_shape_max=Circle(9999999),
+		hole_shape_min=Circle(0.01),
+
+		hole_depth=17.0,
+		fill_mm=20.0,
+		gridfin_height=7.0,
+		hole_num_x=1,
+		gridfin_x=2,
+		hole_num_y=1,
+		gridfin_y=2,
+		hole_chamfer_size=3.98,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=2.5,
+		y_padding=2.5,
+		y_uppies=0,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
 	try:
 		script_dir = Path(__file__).resolve().parent
 		out_dir = script_dir.joinpath("out")
@@ -1306,7 +1358,7 @@ def main():
 	holder_models = []
 	holder_models.append(and_holders(bosch_holders))
 
-	loop_output(out_dir, holders, holder_models, "")
+	loop_output(out_dir, holders, holder_models, "vessel tx76u")
 
 
 
