@@ -1315,7 +1315,7 @@ def main():
 	holders.append(Holder(
 		name="vessel tx76u",
 		version=SemVer(1, 0, 0),
-		hole_shape=RectDouble(32.36, 1, 4, 7),
+		hole_shape=RectDouble(17, 7.5, 5.3, 7.5 + (2 * 2)),
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
@@ -1323,9 +1323,9 @@ def main():
 		fill_mm=20.0,
 		gridfin_height=7.0,
 		hole_num_x=1,
-		gridfin_x=2,
+		gridfin_x=1,
 		hole_num_y=1,
-		gridfin_y=2,
+		gridfin_y=1,
 		hole_chamfer_size=3.98,
 		hole_circle=True,
 		increase_copies=1,
@@ -1358,7 +1358,7 @@ def main():
 	holder_models = []
 	holder_models.append(and_holders(bosch_holders))
 
-	loop_output(out_dir, holders, holder_models, "vessel tx76u")
+	loop_output(out_dir, holders, holder_models, "")
 
 
 
