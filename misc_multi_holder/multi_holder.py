@@ -429,6 +429,19 @@ class RectDouble(HoleShape):
 
 
 
+def size_increase_margin(
+	size: float,
+	_ = None,
+	__ = None,
+	___ = None,
+	____ = None,
+) -> float:
+	smallness = to_range(size, 2.25, 1.6)
+	margin = interp(hole_margin_normal, hole_margin_small, smallness)
+
+	return size + margin
+
+
 def size_default_increase(
 	size: float,
 	_,
@@ -436,10 +449,7 @@ def size_default_increase(
 	___,
 	____,
 ) -> float:
-	smallness = to_range(size, 2.25, 1.6)
-	margin = interp(hole_margin_normal, hole_margin_small, smallness)
-
-	return size + margin
+	return size_increase_margin(size, _, __, ___, ____)
 
 
 class Holder_Model:
@@ -580,10 +590,9 @@ def size_increase_drill(
 
 		hole_size_cir = max(hole_size_cir, min_diameter)
 		hole_size_cir = min(hole_size_cir, max_diameter)
-		if hole_size_cir < 1.6:
-			hole_size_cir += hole_margin_small
-		else:
-			hole_size_cir += hole_margin_normal
+
+		hole_size_cir = size_increase_margin(hole_size_cir)
+
 
 		if loop_index % holder.increase_copies == 0:
 			hole_size_cir_base += holder.increase_amount
