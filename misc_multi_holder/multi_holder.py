@@ -442,6 +442,15 @@ def size_increase_margin(
 	return size + margin
 
 
+def size_indentity(
+	size: float,
+	_,
+	__,
+	___,
+	____,
+) -> float:
+	return size
+
 def size_default_increase(
 	size: float,
 	_,
@@ -470,6 +479,7 @@ class Holder:
 		hole_shape: Optional[HoleShape] = None,
 		hole_shape_max: Optional[HoleShape] = None,
 		hole_shape_min: Optional[HoleShape] = None,
+		no_margin: bool = False,
 		size_func: Optional[Callable[[float, Any, int, int], float]] = None,
 		*,
 		# primitives (same defaults as your dataclass)
@@ -1323,8 +1333,15 @@ def main():
 
 	holders.append(Holder(
 		name="vessel tx76u",
-		version=SemVer(1, 0, 4),
-		hole_shape=RectDouble(17, 7.5, 5.7, 7.5 + (2 * 2)),
+		version=SemVer(1, 0, 6),
+		hole_shape=RectDouble(
+			17.0 + 0.3,
+			7.5 + 0.3,
+			5.7 + 0.4,
+			7.5 + (2 * 2) + 0.4
+		),
+		size_func=size_indentity,
+
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
