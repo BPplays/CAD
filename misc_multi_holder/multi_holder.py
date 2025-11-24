@@ -1323,13 +1323,13 @@ def main():
 
 	holders.append(Holder(
 		name="vessel tx76u",
-		version=SemVer(1, 0, 3),
+		version=SemVer(1, 0, 4),
 		hole_shape=RectDouble(17, 7.5, 5.7, 7.5 + (2 * 2)),
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
 		hole_depth=26.8,
-		fill_mm=20.0,
+		fill_mm=30,
 		gridfin_height=7.0,
 		hole_num_x=1,
 		gridfin_x=1,
