@@ -1264,8 +1264,8 @@ def main():
 	bosch_holders = []
 	bosch_holders.append(Holder(
 		name="bosch glm165-40 with aaa battery holder",
-		version=SemVer(1, 0, 0),
-		hole_shape=Rect(41.25, max(19.27, 19.50)),
+		version=SemVer(1, 0, 1),
+		hole_shape=Rect(41.25, 25),
 		hole_shape_max=Circle(9999999),
 		hole_shape_min=Circle(0.01),
 
