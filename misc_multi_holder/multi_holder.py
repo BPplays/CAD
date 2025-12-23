@@ -1030,6 +1030,38 @@ def loop_output(out_dir, holders, models, filter = ""):
 def main():
 	holders = []
 
+
+	holders.append(Holder(
+		name="ltt screwdriver bit holder",
+		version=SemVer(1, 0, 0),
+		hole_shape=Hexagon(6.35),
+		hole_shape_max=Circle(9999999),
+		hole_shape_min=Circle(0.01),
+
+		hole_depth=6.75,
+		fill_mm=18.0,
+		gridfin_height=7.0,
+		hole_num_x=6,
+		gridfin_x=2,
+		hole_num_y=2,
+		gridfin_y=1,
+		hole_chamfer_size=2,
+		hole_circle=True,
+		increase_copies=1,
+		increase_amount=0,
+		hole_max_size=10000,
+		hole_min_size=0,
+		increase_loop_after=20,
+		edge_padding=0.0,
+		x_padding=3.5,
+		y_padding=3.7,
+		y_uppies=4.5,
+		no_lip=True,
+		no_lip_upper_size=2.0,
+		no_lip_fillet_size=0.3
+	))
+
+
 	holders.append(Holder(
 		name="drill bit holder",
 		version=SemVer(1, 0, 0),
