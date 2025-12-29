@@ -124,7 +124,7 @@ def loop_output(out_dir_base):
 		out_dir.mkdir(parents=True, exist_ok=True)
 
 		spacer = Spacer(
-			name=f"bend radius gauge {radius} mm",
+			name=f"bend radius gauge {radius:.2f} mm",
 			version=SemVer(1, 0, 0),
 			thickness=thickness,
 			diameter=float(diameter),
