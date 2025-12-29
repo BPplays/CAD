@@ -170,7 +170,7 @@ def main():
 		name=f"bend radius gauge {radius} mm",
 		version=SemVer(1, 0, 0),
 		thickness=thickness,
-		diameter=radius,
+		diameter=radius * 2,
 	)
 
 	result, spacer = make_spacer(spacer=spacer)
