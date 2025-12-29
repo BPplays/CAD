@@ -115,7 +115,7 @@ def make_spacer(spacer):
 
 def loop_output(out_dir_base):
 
-	step = Decimal("1")
+	step = Decimal("0.25")
 	diameter = step
 	while diameter <= Decimal('200.0'):
 		radius = diameter / Decimal("2")
@@ -124,7 +124,7 @@ def loop_output(out_dir_base):
 		out_dir.mkdir(parents=True, exist_ok=True)
 
 		spacer = Spacer(
-			name=f"bend radius gauge {radius:.2f} mm",
+			name=f"bend radius gauge {radius:.3f} mm",
 			version=SemVer(1, 0, 0),
 			thickness=thickness,
 			diameter=float(diameter),
