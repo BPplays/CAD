@@ -1,7 +1,7 @@
 # === variables start (in millimeters) ===
 
-thickness = 15
-radius = 82
+thickness = 22
+radius = 12
 
 
 
@@ -40,6 +40,7 @@ class Spacer:
 
 
 
+Version = SemVer(1, 1, 0)
 
 def or_models(models):
 	main_result = None
@@ -86,22 +87,30 @@ def make_spacer(spacer):
 
 	ring_thickness = 5
 
+
 	outer_dia_cut = spacer.diameter * 100
 	outer_dia = spacer.diameter
 	inner_dia = spacer.diameter - (ring_thickness * 2)
+
 	if inner_dia <= 0.0001:
 		inner_dia = 0
 		do_braces = False
-	thickness = spacer.thickness
 
 	outer_r_cut = outer_dia_cut / 2.0
 	outer_r = outer_dia / 2.0
 	inner_r = inner_dia / 2.0
 
-	washer = cq.Workplane("XY").circle(outer_r).circle(inner_r).extrude(thickness)
-	washer_cut = cq.Workplane("XY").circle(outer_r_cut).circle(outer_r - (ring_thickness / 2)).extrude(thickness * 10).translate((0, 0, -(thickness * 5)))
+	cur_inner_r = outer_r - (ring_thickness / 2)
 
-	lineX = cq.Workplane("XY").rect(outer_dia * 2, 7).extrude(2)
+	if cur_inner_r <= 0.0001:
+		cur_inner_r = 0
+	thickness = spacer.thickness
+
+
+	washer = cq.Workplane("XY").circle(outer_r).circle(inner_r).extrude(thickness)
+	washer_cut = cq.Workplane("XY").circle(outer_r_cut).circle(cur_inner_r).extrude(thickness * 10).translate((0, 0, -(thickness * 5)))
+
+	lineX = cq.Workplane("XY").rect(outer_dia * 2, 8.5).extrude(2)
 	lineY = cq.Workplane("XY").rect(7, outer_dia * 2).extrude(2)
 
 	lineX = filbottop(lineX, 0.7, 0.5)
@@ -125,9 +134,9 @@ def make_spacer(spacer):
 
 def loop_output(out_dir_base):
 
-	step = Decimal("0.25")
-	diameter = step
-	while diameter <= Decimal('200.0'):
+	step = Decimal("0.25") * 2
+	diameter = 4 * (Decimal("0.25") * 2)
+	while diameter <= Decimal('70.0') * 2:
 		radius = diameter / Decimal("2")
 
 		out_dir = out_dir_base
@@ -135,7 +144,7 @@ def loop_output(out_dir_base):
 
 		spacer = Spacer(
 			name=f"bend radius gauge {radius:.3f} mm",
-			version=SemVer(1, 0, 0),
+			version=Version,
 			thickness=thickness,
 			diameter=float(diameter),
 		)
@@ -150,6 +159,13 @@ def loop_output(out_dir_base):
 		exporters.export(
 			result,
 			name + ".step"
+		)
+
+		exporters.export(
+			w=result,
+			fname = name + ".stl",
+			tolerance = 0.0002,
+			angularTolerance = 0.08,
 		)
 		diameter += step
 
@@ -178,7 +194,7 @@ def main():
 
 	spacer = Spacer(
 		name=f"bend radius gauge {radius} mm",
-		version=SemVer(1, 0, 1),
+		version=Version,
 		thickness=thickness,
 		diameter=radius * 2,
 	)
