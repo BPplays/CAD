@@ -1,7 +1,7 @@
 # === variables start (in millimeters) ===
 
 thickness = 15
-radius = 12
+radius = 82
 
 
 
@@ -40,78 +40,69 @@ class Spacer:
 
 
 
-def wedge(radius=50.0, angle_tr=0.25, height=10.0, segments=100, center_on_x=True):
-    """
-    Create a circular sector (pizza slice) and extrude it.
-    radius      - outer radius of the slice
-    angle_deg   - angle in degrees (90 == quarter, 180 == half, etc.)
-    height      - extrusion height (prism)
-    segments    - how many straight segments approximate the arc (more => smoother)
-    center_on_x - if True, wedge is symmetric about +X axis (tip at origin)
-    """
-    if angle_tr <= 0:
-        raise ValueError("angle_tr must be > 0")
-    if angle_tr >= 1:
-        # just return a full disk extruded
-        return cq.Workplane("XY").circle(radius).extrude(height)
 
-    angle_rad = angle_tr * math.tau
-    half = angle_rad / 2.0
-    # compute arc start/end so wedge is symmetric about +X when center_on_x=True
-    if center_on_x:
-        start = -half
-        end = half
-    else:
-        # start at 0 and go positive (you can change this to any orientation)
-        start = 0.0
-        end = angle_rad
+def or_models(models):
+	main_result = None
 
-    # generate points along the outer arc (inclusive endpoints)
-    pts = []
-    for i in range(segments + 1):
-        a = start + (end - start) * (i / segments)
-        x = radius * math.cos(a)
-        y = radius * math.sin(a)
-        pts.append((x, y))
+	for model in models:
+		if main_result is None:
+			main_result = model
+		else:
+			main_result = main_result.union(model)
 
-    # Build closed 2D profile:
-    #   start at first arc point, follow arc to last arc point,
-    #   line to center (0,0), then closed back to first arc point.
-    profile_points = [pts[0]] + pts[1:] + [(0.0, 0.0)]
+	return main_result
 
-    # Create and extrude
-    solid = cq.Workplane("XY").polyline(profile_points).close().extrude(height)
-    return solid
+def cut_models(models):
+	main_result = None
 
+	for model in models:
+		if main_result is None:
+			main_result = model
+		else:
+			main_result = main_result.cut(model)
+
+	return main_result
 
 def make_spacer(spacer):
-	wedge_tr = 1
-	if wedge_tr > 1:
-		wedge_tr = 1
-	elif wedge_tr < 0:
-		wedge_tr = 0
+	do_braces = True
 
+	ring_thickness = 5
+
+	outer_dia_cut = spacer.diameter * 100
 	outer_dia = spacer.diameter
-	inner_dia = spacer.diameter - (5 * 2)
-	if inner_dia < 0:
+	inner_dia = spacer.diameter - (ring_thickness * 2)
+	if inner_dia <= 0.0001:
 		inner_dia = 0
+		do_braces = False
 	thickness = spacer.thickness
 
+	outer_r_cut = outer_dia_cut / 2.0
 	outer_r = outer_dia / 2.0
 	inner_r = inner_dia / 2.0
 
 	washer = cq.Workplane("XY").circle(outer_r).circle(inner_r).extrude(thickness)
+	washer_cut = cq.Workplane("XY").circle(outer_r_cut).circle(outer_r - (ring_thickness / 2)).extrude(thickness * 10).translate((0, 0, -(thickness * 5)))
 
-	half_box = (
-		cq.Workplane("XY")
-		  .box(outer_dia, outer_dia * 2.0, thickness * 2.0, centered=(True, True, True))
-		  .translate((outer_r, 0, 0))
+	lineX = cq.Workplane("XY").rect(outer_dia, 7).extrude(2)
+	lineY = cq.Workplane("XY").rect(7, outer_dia).extrude(2)
+	lineX = lineX.cut(washer_cut)
+	lineY = lineY.cut(washer_cut)
+
+
+	washer = (
+		washer
+		.faces(">Z or <Z")
+		.edges()
+		.fillet(1)
 	)
-	wedge_int = wedge(outer_dia * 10, wedge_tr, thickness * 10, 100, True)
 
-	half_washer = washer.intersect(wedge_int)
+	out = washer
+	if do_braces:
+		out = or_models({washer, lineX, lineY})
 
-	return half_washer, spacer
+
+
+	return out, spacer
 
 def loop_output(out_dir_base):
 
@@ -168,7 +159,7 @@ def main():
 
 	spacer = Spacer(
 		name=f"bend radius gauge {radius} mm",
-		version=SemVer(1, 0, 0),
+		version=SemVer(1, 0, 1),
 		thickness=thickness,
 		diameter=radius * 2,
 	)
