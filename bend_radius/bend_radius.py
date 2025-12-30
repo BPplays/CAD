@@ -63,6 +63,24 @@ def cut_models(models):
 
 	return main_result
 
+def filbottop(model, fillet_size, chamfer_size):
+	washer = model
+	washer = (
+		washer
+		.faces("<Z")
+		.edges()
+		.chamfer(chamfer_size)
+	)
+
+	washer = (
+		washer
+		.faces(">Z or <<Z[1]")
+		.edges()
+		.fillet(fillet_size)
+	)
+	return washer
+
+
 def make_spacer(spacer):
 	do_braces = True
 
@@ -83,18 +101,19 @@ def make_spacer(spacer):
 	washer = cq.Workplane("XY").circle(outer_r).circle(inner_r).extrude(thickness)
 	washer_cut = cq.Workplane("XY").circle(outer_r_cut).circle(outer_r - (ring_thickness / 2)).extrude(thickness * 10).translate((0, 0, -(thickness * 5)))
 
-	lineX = cq.Workplane("XY").rect(outer_dia, 7).extrude(2)
-	lineY = cq.Workplane("XY").rect(7, outer_dia).extrude(2)
+	lineX = cq.Workplane("XY").rect(outer_dia * 2, 7).extrude(2)
+	lineY = cq.Workplane("XY").rect(7, outer_dia * 2).extrude(2)
+
+	lineX = filbottop(lineX, 0.7, 0.5)
+	lineY = filbottop(lineY, 0.7, 0.5)
+
+
 	lineX = lineX.cut(washer_cut)
 	lineY = lineY.cut(washer_cut)
 
 
-	washer = (
-		washer
-		.faces(">Z or <Z")
-		.edges()
-		.fillet(1)
-	)
+
+	washer = filbottop(washer, 1, 1)
 
 	out = washer
 	if do_braces:
