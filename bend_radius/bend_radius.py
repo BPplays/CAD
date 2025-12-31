@@ -1,7 +1,7 @@
 # === variables start (in millimeters) ===
 
 thickness = 22
-radius = 12
+radius = 16
 
 
 
@@ -40,7 +40,7 @@ class Spacer:
 
 
 
-Version = SemVer(1, 1, 0)
+Version = SemVer(1, 2, 0)
 
 def or_models(models):
 	main_result = None
@@ -87,6 +87,8 @@ def make_spacer(spacer):
 
 	ring_thickness = 5
 
+	radius = spacer.diameter / 2
+
 
 	outer_dia_cut = spacer.diameter * 100
 	outer_dia = spacer.diameter
@@ -111,14 +113,43 @@ def make_spacer(spacer):
 	washer_cut = cq.Workplane("XY").circle(outer_r_cut).circle(cur_inner_r).extrude(thickness * 10).translate((0, 0, -(thickness * 5)))
 
 	lineX = cq.Workplane("XY").rect(outer_dia * 2, 8.5).extrude(2)
-	lineY = cq.Workplane("XY").rect(7, outer_dia * 2).extrude(2)
+	lineY = cq.Workplane("XY").rect(8.5, outer_dia * 2).extrude(2)
 
 	lineX = filbottop(lineX, 0.7, 0.5)
 	lineY = filbottop(lineY, 0.7, 0.5)
 
 
+	single_line = False
+	if radius < 15.9999:
+		lineX = cq.Workplane("XY").rect(outer_dia * 2, outer_dia * 2).extrude(2)
+		lineY = lineX
+		single_line = True
+
+
 	lineX = lineX.cut(washer_cut)
 	lineY = lineY.cut(washer_cut)
+
+	profile = (
+		cq.Workplane("XZ")
+		.polyline([
+			(0, 0),
+			(2 * 4, 0),
+			(2 * 4, 2 * 4),
+			(0, 0)
+		])
+		.close()
+	)
+
+	wsize = 7.1
+	wedge = profile.extrude(wsize).translate([-1, wsize / 2, 0])
+	wedge = (
+		wedge
+		.faces("<<Z[1]")
+		.edges("(>Y and >Z and <X) or (<Y and >Z and <X)")
+		.fillet(1)
+	)
+
+	# return wedge, spacer
 
 
 
@@ -127,6 +158,52 @@ def make_spacer(spacer):
 	out = washer
 	if do_braces:
 		out = or_models({washer, lineX, lineY})
+
+		if single_line:
+			cs = radius - 5
+
+			if cs > 2:
+				cs = 2
+
+			if math.isclose(radius, 20, abs_tol=0.04):
+				cs = 1.90
+
+			if math.isclose(radius, 20.25, abs_tol=0.03):
+				cs = 1.5
+
+			if radius > 20.25:
+				cs = 1.5
+
+			if radius > 28:
+				cs = 1
+
+
+			if cs >= 0.0001:
+				out = (
+					out
+					.faces("<Z[1]")
+					.edges(">X or >Y or <X or <Y")
+					.chamfer(cs)
+				)
+		else:
+			orl = {out}
+			trn = ((inner_dia / 2) - 2, 0, 2)
+			trans = [
+				{"trn": trn, "rot": 0},
+				{"trn": trn, "rot": 90},
+				{"trn": trn, "rot": 180},
+				{"trn": trn, "rot": -90},
+			]
+			for tran in trans:
+				tw = wedge.translate(tran["trn"]).rotate(
+					(0, 0, 0),
+					(0, 0, 1),
+					tran["rot"]
+				)
+
+				tw = tw.cut(washer_cut)
+				orl.add(tw)
+			out = or_models(orl)
 
 
 
