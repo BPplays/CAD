@@ -40,23 +40,6 @@ class Spacer:
 
 
 def make_spacer(spacer):
-	if spacer.bits > 3:
-		raise ValueError(
-			"can't have more then 3 bit or it won't fit around the center"
-		)
-		# print("can't have more then 3 bit or it won't fit around the center")
-		# exit(1)
-
-	total_bits_per_side = 6
-
-	wedge_tr = spacer.bits / total_bits_per_side
-	if wedge_tr > 1:
-		wedge_tr = 1
-	elif wedge_tr < 0:
-		wedge_tr = 0
-
-	wedge_tr = 1
-
 	outer_dia = spacer.outer_dia
 	inner_dia = spacer.inner_dia
 	thickness = spacer.thickness
@@ -70,7 +53,7 @@ def make_spacer(spacer):
 
 def loop_output(out_dir_base):
 
-	out_dir = out_dir_base.joinpath(f"{bits} bit{'s' if bits > 1 else ''}")
+	out_dir = out_dir_base
 	out_dir.mkdir(parents=True, exist_ok=True)
 
 	step = Decimal('0.5')
@@ -81,7 +64,7 @@ def loop_output(out_dir_base):
 	inner_dia = 35
 
 	while bit_size <= Decimal('10.0'):
-		name = f"washer {bit_size} thick"
+		name = f"washer {bit_size}mm thick"
 
 		spacer = Spacer(
 			name=name,
@@ -89,9 +72,9 @@ def loop_output(out_dir_base):
 			thickness=float(bit_size),
 			outer_dia=outer_dia,
 			inner_dia=inner_dia,
-			bits=bits
+			bits=3
 		)
-		print(f"making \"{spacer.name}\" for {bits} bits")
+		print(f"making \"{spacer.name}\"")
 
 		result, spacer = make_spacer(spacer=spacer)
 		exporters.export(
