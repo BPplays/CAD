@@ -1,5 +1,5 @@
 # === variables start ===
-Spacer_thickness = 2.0 # in millimeters
+Spacer_thickness = 5.0 # in millimeters
 Bits = 3 # number of bits you want to the spacer to cover (experimental, tested with 3)
 
 
@@ -58,7 +58,7 @@ def loop_output(out_dir_base):
 
 	step = Decimal('0.5')
 	bit_size = step
-	bit_size = Decimal("2.0")
+	bit_size = Decimal(Spacer_thickness)
 
 	outer_dia = 50
 	inner_dia = 35
