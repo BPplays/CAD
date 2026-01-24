@@ -1029,7 +1029,7 @@ def loop_output(out_dir, holders, models, do_stl, filter = ""):
 			continue
 
 		exporters.export(
-			w=result,
+			w=model.model,
 			fname = str(out_dir.joinpath(name + ".stl")),
 			tolerance = 0.0002,
 			angularTolerance = 0.08,
