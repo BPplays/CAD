@@ -997,7 +997,7 @@ def and_holders(holders):
 	return Holder_Model(main_holder, main_result)
 
 
-def loop_output(out_dir, holders, models, filter = ""):
+def loop_output(out_dir, holders, models, do_stl, filter = ""):
 
 	for holder in holders:
 		if not (filter == holder.name or filter == ""):
@@ -1018,11 +1018,21 @@ def loop_output(out_dir, holders, models, filter = ""):
 		if not (__name__ == "__main__" and (out_dir != doesnt_exist_script_dir)):
 			continue
 
+		name = f"{model.holder.name} v{str(model.holder.version)}"
+
 		exporters.export(
 			model.model,
-			str(out_dir.joinpath(
-				f"{model.holder.name} v{str(model.holder.version)}.step"
-			))
+			str(out_dir.joinpath(name + ".step")),
+		)
+
+		if not do_stl:
+			continue
+
+		exporters.export(
+			w=result,
+			fname = str(out_dir.joinpath(name + ".stl")),
+			tolerance = 0.0002,
+			angularTolerance = 0.08,
 		)
 
 
@@ -1416,7 +1426,7 @@ def main():
 	holder_models = []
 	holder_models.append(and_holders(bosch_holders))
 
-	loop_output(out_dir, holders, holder_models, "")
+	loop_output(out_dir, holders, holder_models, True, "")
 
 
 
