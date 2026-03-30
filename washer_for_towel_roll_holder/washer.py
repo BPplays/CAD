@@ -46,6 +46,16 @@ import cadquery as cq
 import math
 
 
+import cadquery as cq
+import math
+
+
+def _smooth01(x: float) -> float:
+	"""Smooth step from 0 to 1 with zero slope at both ends."""
+	x = max(0.0, min(1.0, x))
+	return 0.5 - 0.5 * math.cos(math.pi * x)
+
+
 def angled_ring_ramp(
 	inner_radius: float,
 	outer_radius: float,
@@ -54,11 +64,11 @@ def angled_ring_ramp(
 	thickness: float,
 	wedge_height: float | None = None,
 	start_angle: float = 0.0,
-	segments: int = 80,
-	arc_samples: int = 8,
+	resolution_deg: float = 2.0,
+	arc_samples: int = 16,
 ) -> cq.Workplane:
 	"""
-	Build a ring-following ramp.
+	Build a ring-following ramp with constant thickness and smooth rise/fall.
 
 	Parameters
 	----------
@@ -67,19 +77,21 @@ def angled_ring_ramp(
 	outer_radius : float
 		Outer radius of the ring.
 	ang : float
-		Ramp angle in degrees. This is the slope angle of the rise/fall.
+		Slope angle in degrees.
 	height : float
 		Peak height of the ramp.
+	thickness : float
+		Vertical thickness of the ramp body.
 	wedge_height : float | None
 		How much height to taper back down at the end.
-		- None means "same as height" (returns to zero).
+		- None means it returns all the way back to 0.
 		- Smaller than height means it only tapers down partway.
 	start_angle : float
 		Starting angle of the ramp, in degrees.
-	segments : int
-		Number of thin slices used to approximate the ramp.
+	resolution_deg : float
+		Approximate angular spacing used internally to build the smooth shape.
 	arc_samples : int
-		Number of points used to approximate each curved slice.
+		Samples used to approximate the inner/outer curved edges of each slice.
 
 	Returns
 	-------
@@ -94,13 +106,19 @@ def angled_ring_ramp(
 		raise ValueError("ang should be between 0 and 90 degrees")
 	if height <= 0:
 		raise ValueError("height must be > 0")
+	if thickness <= 0:
+		raise ValueError("thickness must be > 0")
+	if resolution_deg <= 0:
+		raise ValueError("resolution_deg must be > 0")
+	if arc_samples < 3:
+		raise ValueError("arc_samples must be >= 3")
 
 	if wedge_height is None:
 		wedge_height = height
 	if wedge_height < 0:
 		raise ValueError("wedge_height must be >= 0")
 
-	# Use the mid-radius to convert vertical rise/fall into angular span.
+	# Convert desired slope angle into angular span around the ring.
 	r_mid = (inner_radius + outer_radius) / 2.0
 	slope = math.tan(math.radians(ang))
 
@@ -111,33 +129,45 @@ def angled_ring_ramp(
 	fall_theta = fall_arc_len / r_mid
 	total_theta = rise_theta + fall_theta
 
+	if total_theta <= 0:
+		raise ValueError("Computed ramp length is invalid")
+
 	start = math.radians(start_angle)
 
-	def z_at(t: float) -> float:
-		"""Height along the ramp as a function of normalized progress [0, 1]."""
+	def h_at(t: float) -> float:
+		"""Height along the ramp for normalized progress t in [0, 1]."""
 		arc = t * total_theta
+
 		if rise_theta > 0 and arc <= rise_theta:
-			return height * (arc / rise_theta)
+			u = arc / rise_theta
+			return height * _smooth01(u)
+
 		if fall_theta > 0:
-			return max(0.0, height - wedge_height * ((arc - rise_theta) / fall_theta))
+			u = (arc - rise_theta) / fall_theta
+			return max(0.0, height - wedge_height * _smooth01(u))
+
 		return height
+
+	# Internal sampling only; user does not have to manage segments.
+	steps = max(12, int(math.ceil(math.degrees(total_theta) / resolution_deg)))
 
 	solid = None
 
-	for i in range(segments):
-		t0 = i / segments
-		t1 = (i + 1) / segments
+	for i in range(steps):
+		t0 = i / steps
+		t1 = (i + 1) / steps
+		tm = 0.5 * (t0 + t1)
 
 		a0 = start + t0 * total_theta
 		a1 = start + t1 * total_theta
 
-		# Height for this thin slice.
-		z0 = z_at(t0)
-		z1 = z_at(t1)
-		uppies = 0.5 * (z0 + z1)
-		z = thickness
+		# Use the mid-sample height for this slice.
+		top = h_at(tm)
 
-		# Build an annular-sector-ish polygon for this slice.
+		# Constant-thickness slab, but do not force it below the ground plane.
+		bottom = max(0.0, top - thickness)
+		slice_h = max(1e-6, top - bottom)
+
 		pts = []
 
 		for j in range(arc_samples + 1):
@@ -150,10 +180,15 @@ def angled_ring_ramp(
 			a = a0 + (a1 - a0) * u
 			pts.append((inner_radius * math.cos(a), inner_radius * math.sin(a)))
 
-		slice_solid = cq.Workplane("XY").polyline(pts).close().extrude(z)
+		slice_solid = (
+			cq.Workplane("XY")
+			.polyline(pts)
+			.close()
+			.extrude(slice_h)
+			.translate((0, 0, bottom))
+		)
 
 		solid = slice_solid if solid is None else solid.union(slice_solid)
-		solid = solid.translate((0, 0, 0))
 
 	return solid
 
@@ -234,8 +269,7 @@ def main():
 		thickness=0.5,
 		wedge_height=1,   # set smaller for only a partial taper-down
 		start_angle=0,
-		segments=10,
-		arc_samples=1,
+		arc_samples=10,
 	)
 
 	show_object(obj)
