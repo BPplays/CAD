@@ -46,14 +46,10 @@ import cadquery as cq
 import math
 
 
-import cadquery as cq
-import math
-
-
-def _smooth01(x: float) -> float:
-	"""Smooth step from 0 to 1 with zero slope at both ends."""
-	x = max(0.0, min(1.0, x))
-	return 0.5 - 0.5 * math.cos(math.pi * x)
+def _smooth01(t: float) -> float:
+	"""C1-smooth 0..1 easing."""
+	t = max(0.0, min(1.0, t))
+	return 0.5 - 0.5 * math.cos(math.pi * t)
 
 
 def angled_ring_ramp(
@@ -65,10 +61,13 @@ def angled_ring_ramp(
 	wedge_height: float | None = None,
 	start_angle: float = 0.0,
 	resolution_deg: float = 2.0,
-	arc_samples: int = 16,
 ) -> cq.Workplane:
 	"""
-	Build a ring-following ramp with constant thickness and smooth rise/fall.
+	Smooth ring-following ramp with constant thickness.
+
+	The shape rises along the ring up to `height`, then optionally tapers back
+	down by `wedge_height`. The body is thickness-limited, so it is not a solid
+	block down to the ground.
 
 	Parameters
 	----------
@@ -81,22 +80,18 @@ def angled_ring_ramp(
 	height : float
 		Peak height of the ramp.
 	thickness : float
-		Vertical thickness of the ramp body.
+		Material thickness of the ramp body.
 	wedge_height : float | None
 		How much height to taper back down at the end.
-		- None means it returns all the way back to 0.
-		- Smaller than height means it only tapers down partway.
+		None means taper all the way back to zero.
 	start_angle : float
-		Starting angle of the ramp, in degrees.
+		Starting angle in degrees.
 	resolution_deg : float
-		Approximate angular spacing used internally to build the smooth shape.
-	arc_samples : int
-		Samples used to approximate the inner/outer curved edges of each slice.
+		Internal angular spacing for the loft stations. Smaller = smoother.
 
 	Returns
 	-------
 	cq.Workplane
-		A fused solid representing the ramp.
 	"""
 	if inner_radius <= 0:
 		raise ValueError("inner_radius must be > 0")
@@ -110,18 +105,16 @@ def angled_ring_ramp(
 		raise ValueError("thickness must be > 0")
 	if resolution_deg <= 0:
 		raise ValueError("resolution_deg must be > 0")
-	if arc_samples < 3:
-		raise ValueError("arc_samples must be >= 3")
 
 	if wedge_height is None:
 		wedge_height = height
 	if wedge_height < 0:
 		raise ValueError("wedge_height must be >= 0")
 
-	# Convert desired slope angle into angular span around the ring.
 	r_mid = (inner_radius + outer_radius) / 2.0
 	slope = math.tan(math.radians(ang))
 
+	# Convert target height changes into arc lengths and then into angular spans.
 	rise_arc_len = height / slope
 	fall_arc_len = wedge_height / slope
 
@@ -130,12 +123,12 @@ def angled_ring_ramp(
 	total_theta = rise_theta + fall_theta
 
 	if total_theta <= 0:
-		raise ValueError("Computed ramp length is invalid")
+		raise ValueError("Computed ramp span is invalid")
 
 	start = math.radians(start_angle)
 
 	def h_at(t: float) -> float:
-		"""Height along the ramp for normalized progress t in [0, 1]."""
+		"""Height along the ramp for t in [0, 1]."""
 		arc = t * total_theta
 
 		if rise_theta > 0 and arc <= rise_theta:
@@ -148,49 +141,39 @@ def angled_ring_ramp(
 
 		return height
 
-	# Internal sampling only; user does not have to manage segments.
-	steps = max(12, int(math.ceil(math.degrees(total_theta) / resolution_deg)))
+	# Internal station count only. This is not exposed to the caller.
+	stations = max(16, int(math.ceil(math.degrees(total_theta) / resolution_deg)))
 
-	solid = None
+	wires = []
+	for i in range(stations + 1):
+		t = i / stations
+		theta = start + t * total_theta
 
-	for i in range(steps):
-		t0 = i / steps
-		t1 = (i + 1) / steps
-		tm = 0.5 * (t0 + t1)
-
-		a0 = start + t0 * total_theta
-		a1 = start + t1 * total_theta
-
-		# Use the mid-sample height for this slice.
-		top = h_at(tm)
-
-		# Constant-thickness slab, but do not force it below the ground plane.
+		top = h_at(t)
 		bottom = max(0.0, top - thickness)
-		slice_h = max(1e-6, top - bottom)
+		z_mid = 0.5 * (top + bottom)
+		z_size = max(1e-6, top - bottom)
 
-		pts = []
+		x = r_mid * math.cos(theta)
+		y = r_mid * math.sin(theta)
 
-		for j in range(arc_samples + 1):
-			u = j / arc_samples
-			a = a0 + (a1 - a0) * u
-			pts.append((outer_radius * math.cos(a), outer_radius * math.sin(a)))
-
-		for j in range(arc_samples, -1, -1):
-			u = j / arc_samples
-			a = a0 + (a1 - a0) * u
-			pts.append((inner_radius * math.cos(a), inner_radius * math.sin(a)))
-
-		slice_solid = (
-			cq.Workplane("XY")
-			.polyline(pts)
-			.close()
-			.extrude(slice_h)
-			.translate((0, 0, bottom))
+		# Plane whose x axis is vertical and y axis is radial.
+		plane = cq.Plane(
+			origin=(x, y, z_mid),
+			xDir=(0, 0, 1),
+			normal=(-math.sin(theta), math.cos(theta), 0),
 		)
 
-		solid = slice_solid if solid is None else solid.union(slice_solid)
+		wire = (
+			cq.Workplane(plane)
+			.rect(z_size, outer_radius - inner_radius)
+			.wires()
+			.val()
+		)
+		wires.append(wire)
 
-	return solid
+	solid = cq.Solid.makeLoft(wires, ruled=False)
+	return cq.Workplane("XY").newObject([solid])
 
 
 def make_spacer(spacer):
@@ -267,9 +250,8 @@ def main():
 		ang=60,
 		height=2,
 		thickness=0.5,
-		wedge_height=1,   # set smaller for only a partial taper-down
+		wedge_height=0.25,   # set smaller for only a partial taper-down
 		start_angle=0,
-		arc_samples=10,
 	)
 
 	show_object(obj)
