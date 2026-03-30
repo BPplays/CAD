@@ -46,10 +46,11 @@ import cadquery as cq
 import math
 
 
-def _smooth01(t: float) -> float:
-	"""C1-smooth 0..1 easing."""
-	t = max(0.0, min(1.0, t))
-	return 0.5 - 0.5 * math.cos(math.pi * t)
+
+def _smooth01(x: float) -> float:
+	"""Cosine smoothstep: 0->1 with zero slope at both ends."""
+	x = max(0.0, min(1.0, x))
+	return 0.5 - 0.5 * math.cos(math.pi * x)
 
 
 def angled_ring_ramp(
@@ -63,11 +64,7 @@ def angled_ring_ramp(
 	resolution_deg: float = 2.0,
 ) -> cq.Workplane:
 	"""
-	Smooth ring-following ramp with constant thickness.
-
-	The shape rises along the ring up to `height`, then optionally tapers back
-	down by `wedge_height`. The body is thickness-limited, so it is not a solid
-	block down to the ground.
+	Build a smooth ring-following ramp with constant thickness.
 
 	Parameters
 	----------
@@ -80,18 +77,19 @@ def angled_ring_ramp(
 	height : float
 		Peak height of the ramp.
 	thickness : float
-		Material thickness of the ramp body.
+		Constant body thickness.
 	wedge_height : float | None
 		How much height to taper back down at the end.
-		None means taper all the way back to zero.
+		None means it returns all the way to 0.
 	start_angle : float
-		Starting angle in degrees.
+		Starting angle of the ramp, in degrees.
 	resolution_deg : float
-		Internal angular spacing for the loft stations. Smaller = smoother.
+		Internal angular spacing used for loft profiles.
 
 	Returns
 	-------
 	cq.Workplane
+		The ramp solid.
 	"""
 	if inner_radius <= 0:
 		raise ValueError("inner_radius must be > 0")
@@ -114,7 +112,6 @@ def angled_ring_ramp(
 	r_mid = (inner_radius + outer_radius) / 2.0
 	slope = math.tan(math.radians(ang))
 
-	# Convert target height changes into arc lengths and then into angular spans.
 	rise_arc_len = height / slope
 	fall_arc_len = wedge_height / slope
 
@@ -128,51 +125,45 @@ def angled_ring_ramp(
 	start = math.radians(start_angle)
 
 	def h_at(t: float) -> float:
-		"""Height along the ramp for t in [0, 1]."""
 		arc = t * total_theta
-
 		if rise_theta > 0 and arc <= rise_theta:
 			u = arc / rise_theta
 			return height * _smooth01(u)
-
 		if fall_theta > 0:
 			u = (arc - rise_theta) / fall_theta
 			return max(0.0, height - wedge_height * _smooth01(u))
-
 		return height
 
-	# Internal station count only. This is not exposed to the caller.
-	stations = max(16, int(math.ceil(math.degrees(total_theta) / resolution_deg)))
+	# Internal smoothness control only.
+	n_profiles = max(6, int(math.ceil(math.degrees(total_theta) / resolution_deg)) + 1)
 
-	wires = []
-	for i in range(stations + 1):
-		t = i / stations
+	profiles = []
+	width = outer_radius - inner_radius
+
+	for i in range(n_profiles):
+		t = i / (n_profiles - 1)
 		theta = start + t * total_theta
+		h = h_at(t)
 
-		top = h_at(t)
-		bottom = max(0.0, top - thickness)
-		z_mid = 0.5 * (top + bottom)
-		z_size = max(1e-6, top - bottom)
+		# Rectangle center sits at the mid-radius and at the mid-height of the thickness.
+		# The top of the ramp is at z = h, so the rectangle center is h - thickness/2.
+		z_center = h - thickness / 2.0
 
 		x = r_mid * math.cos(theta)
 		y = r_mid * math.sin(theta)
 
-		# Plane whose x axis is vertical and y axis is radial.
-		plane = cq.Plane(
-			origin=(x, y, z_mid),
-			xDir=(0, 0, 1),
-			normal=(-math.sin(theta), math.cos(theta), 0),
-		)
+		# Plane tangent to the ring at this angle:
+		# xDir points radially outward, normal points along the ring tangent.
+		xdir = (math.cos(theta), math.sin(theta), 0.0)
+		normal = (-math.sin(theta), math.cos(theta), 0.0)
 
-		wire = (
-			cq.Workplane(plane)
-			.rect(z_size, outer_radius - inner_radius)
-			.wires()
-			.val()
-		)
-		wires.append(wire)
+		plane = cq.Plane(origin=(x, y, z_center), xDir=xdir, normal=normal)
 
-	solid = cq.Solid.makeLoft(wires, ruled=False)
+		profile = cq.Workplane(plane).rect(width, thickness).wire().val()
+		profiles.append(profile)
+
+
+	solid = cq.Solid.makeLoft(profiles, ruled=False)
 	return cq.Workplane("XY").newObject([solid])
 
 
@@ -250,10 +241,16 @@ def main():
 		ang=60,
 		height=2,
 		thickness=0.5,
-		wedge_height=0.25,   # set smaller for only a partial taper-down
+		wedge_height=0.0,   # set smaller for only a partial taper-down
 		start_angle=0,
 	)
 
+
+	obj = (
+		obj
+		.edges(">Z")
+		.fillet(0.1)
+	)
 	show_object(obj)
 	return
 
