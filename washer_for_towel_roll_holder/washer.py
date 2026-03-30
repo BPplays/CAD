@@ -40,6 +40,123 @@ class Spacer:
 	bits: int = Bits
 
 
+import math
+
+import cadquery as cq
+import math
+
+
+def angled_ring_ramp(
+	inner_radius: float,
+	outer_radius: float,
+	ang: float,
+	height: float,
+	thickness: float,
+	wedge_height: float | None = None,
+	start_angle: float = 0.0,
+	segments: int = 80,
+	arc_samples: int = 8,
+) -> cq.Workplane:
+	"""
+	Build a ring-following ramp.
+
+	Parameters
+	----------
+	inner_radius : float
+		Inner radius of the ring.
+	outer_radius : float
+		Outer radius of the ring.
+	ang : float
+		Ramp angle in degrees. This is the slope angle of the rise/fall.
+	height : float
+		Peak height of the ramp.
+	wedge_height : float | None
+		How much height to taper back down at the end.
+		- None means "same as height" (returns to zero).
+		- Smaller than height means it only tapers down partway.
+	start_angle : float
+		Starting angle of the ramp, in degrees.
+	segments : int
+		Number of thin slices used to approximate the ramp.
+	arc_samples : int
+		Number of points used to approximate each curved slice.
+
+	Returns
+	-------
+	cq.Workplane
+		A fused solid representing the ramp.
+	"""
+	if inner_radius <= 0:
+		raise ValueError("inner_radius must be > 0")
+	if outer_radius <= inner_radius:
+		raise ValueError("outer_radius must be > inner_radius")
+	if ang <= 0 or ang >= 89.9:
+		raise ValueError("ang should be between 0 and 90 degrees")
+	if height <= 0:
+		raise ValueError("height must be > 0")
+
+	if wedge_height is None:
+		wedge_height = height
+	if wedge_height < 0:
+		raise ValueError("wedge_height must be >= 0")
+
+	# Use the mid-radius to convert vertical rise/fall into angular span.
+	r_mid = (inner_radius + outer_radius) / 2.0
+	slope = math.tan(math.radians(ang))
+
+	rise_arc_len = height / slope
+	fall_arc_len = wedge_height / slope
+
+	rise_theta = rise_arc_len / r_mid
+	fall_theta = fall_arc_len / r_mid
+	total_theta = rise_theta + fall_theta
+
+	start = math.radians(start_angle)
+
+	def z_at(t: float) -> float:
+		"""Height along the ramp as a function of normalized progress [0, 1]."""
+		arc = t * total_theta
+		if rise_theta > 0 and arc <= rise_theta:
+			return height * (arc / rise_theta)
+		if fall_theta > 0:
+			return max(0.0, height - wedge_height * ((arc - rise_theta) / fall_theta))
+		return height
+
+	solid = None
+
+	for i in range(segments):
+		t0 = i / segments
+		t1 = (i + 1) / segments
+
+		a0 = start + t0 * total_theta
+		a1 = start + t1 * total_theta
+
+		# Height for this thin slice.
+		z0 = z_at(t0)
+		z1 = z_at(t1)
+		uppies = 0.5 * (z0 + z1)
+		z = thickness
+
+		# Build an annular-sector-ish polygon for this slice.
+		pts = []
+
+		for j in range(arc_samples + 1):
+			u = j / arc_samples
+			a = a0 + (a1 - a0) * u
+			pts.append((outer_radius * math.cos(a), outer_radius * math.sin(a)))
+
+		for j in range(arc_samples, -1, -1):
+			u = j / arc_samples
+			a = a0 + (a1 - a0) * u
+			pts.append((inner_radius * math.cos(a), inner_radius * math.sin(a)))
+
+		slice_solid = cq.Workplane("XY").polyline(pts).close().extrude(z)
+
+		solid = slice_solid if solid is None else solid.union(slice_solid)
+		solid = solid.translate((0, 0, 0))
+
+	return solid
+
 
 def make_spacer(spacer):
 	outer_dia = spacer.outer_dia
@@ -109,6 +226,22 @@ def loop_output(out_dir_base):
 		break
 
 def main():
+	obj = angled_ring_ramp(
+		inner_radius=2,
+		outer_radius=3,
+		ang=60,
+		height=2,
+		thickness=0.5,
+		wedge_height=1,   # set smaller for only a partial taper-down
+		start_angle=0,
+		segments=10,
+		arc_samples=1,
+	)
+
+	show_object(obj)
+	return
+
+
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-l', '--loop', action="store_true",
 					 help='loop over 0.5 to 10mm spacers')
