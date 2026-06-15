@@ -447,7 +447,6 @@ def size_indentity(
 	_,
 	__,
 	___,
-	____,
 ) -> float:
 	return size
 
