@@ -444,10 +444,6 @@ def size_increase_margin(
 
 def size_indentity(
 	size: float,
-	_,
-	__,
-	___,
-	____,
 ) -> float:
 	return size
 
@@ -480,7 +476,13 @@ class Holder:
 		hole_shape_max: Optional[HoleShape] = None,
 		hole_shape_min: Optional[HoleShape] = None,
 		no_margin: bool = False,
-		size_func: Optional[Callable[[float, Any, int, int, int], float]] = None,
+		size_func: Optional[Callable[[
+			float,
+			Any | None,
+			int | None,
+			int | None,
+			int | None,
+		], float]] = None,
 		*,
 		# primitives (same defaults as your dataclass)
 		hole_size_flat: float = 0.5,
