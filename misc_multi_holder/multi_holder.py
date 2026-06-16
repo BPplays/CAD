@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from cadquery import exporters
 from pathlib import Path # noqa
 from typing import Dict, Union
+import inspect
 
 hole_margin_small = 0.6
 hole_margin_normal = 0.4
@@ -1037,6 +1038,10 @@ def loop_output(out_dir, holders, models, do_stl, filter = ""):
 			angularTolerance = 0.04,
 		)
 
+def _call_variable_func(func, *args):
+	"""Call size_func with only the args it declared."""
+	n = len(inspect.signature(func).parameters)
+	return func(*args[:n])
 
 
 def main():
