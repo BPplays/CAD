@@ -432,10 +432,6 @@ class RectDouble(HoleShape):
 
 def size_increase_margin(
 	size: float,
-	_ = None,
-	__ = None,
-	___ = None,
-	____ = None,
 ) -> float:
 	smallness = to_range(size, 2.25, 1.6)
 	margin = interp(hole_margin_normal, hole_margin_small, smallness)
@@ -450,12 +446,8 @@ def size_indentity(
 
 def size_default_increase(
 	size: float,
-	_,
-	__,
-	___,
-	____,
 ) -> float:
-	return size_increase_margin(size, _, __, ___, ____)
+	return size_increase_margin(size)
 
 
 class Holder_Model:
