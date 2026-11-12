@@ -287,7 +287,7 @@ result = result.faces("<X").edges("<Z").chamfer(1)
 
 # In CQ-editor this displays the model. Uncomment the export line to save STEP/STL.
 if "show_object" in globals():
-    show_object(result, name="OnQ mounting plate")
+    show_object(result, name="OnQ mounting plate for switch")
 
-cq.exporters.export(result, "onq_mount.step")
+cq.exporters.export(result, "onq_mount_switch.step")
 # cq.exporters.export(result, "onq_mount.stl")
