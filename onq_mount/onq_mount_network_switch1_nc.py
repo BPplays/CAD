@@ -242,12 +242,15 @@ x = bb.xmax
 z = bb.zmin
 y0, y1 = bb.ymin, bb.ymax
 
+first_thick = 8
+
 # Create a triangular wedge along the selected edge.
 wedge = (
     cq.Workplane("XZ", origin=(0, y1, 0))
     .polyline([
-        (x, z),
-        (x, z + height),
+        (first_thick + 2, z),
+        (x, z + height + 5),
+        (x, z + height - first_thick),
         (x + run, z),
     ])
     .close()
@@ -257,15 +260,9 @@ wedge = (
 # Merge wedge into original solid.
 result = result.union(wedge).clean()
 
-face = result.faces(">X")
+face = result.faces(">X").faces("<Y")
+result = face
 
-# upper = (
-#     face
-#     .workplane()
-#     .rect(face.val().BoundingBox().ylen, upper_thick, False)
-#     .extrude(60)
-# )
-# result = upper
 bb = face.val().BoundingBox()
 upper = (
     cq.Workplane("YZ")
@@ -277,6 +274,7 @@ upper = (
 
 result = result.union(upper)
 
+result = result.faces(">X[1]").faces("<Z").edges("<Z").chamfer(5.5)
 
 result = result.faces(">X").chamfer(1)
 
@@ -291,5 +289,5 @@ result = result.faces("<X").edges("<Z").chamfer(1)
 if "show_object" in globals():
     show_object(result, name="OnQ mounting plate")
 
-# cq.exporters.export(result, "onq_mount.step")
+cq.exporters.export(result, "onq_mount.step")
 # cq.exporters.export(result, "onq_mount.stl")
